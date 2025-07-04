@@ -109,6 +109,20 @@
         }
       ]
     },
-    "dialog:default"
+    "dialog:default",
+    {
+      "identifier": "http:default",
+      "allow": [
+        {
+          "url": "https://files.gamebanana.com/*"
+        }
+      ],
+      "deny": [
+        {
+          "url": "https://private.tauri.app"
+        }
+      ]
+    },
+    "http:default"
   ]
 }

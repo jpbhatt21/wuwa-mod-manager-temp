@@ -1,29 +1,5 @@
 {
-  "data": {},
-  "default": {
-    "version": "1.0",
-    "dir": "",
-    "presets": [],
-    "data": {},
-    "items": [],
-    "settings": {
-      "hotKeys": {
-        "ctrl+9": {
-          "name": "focus_hot_key",
-          "type": "fhk",
-          "value": ""
-        }
-      },
-      "hotReload": true,
-      "toggle": 2,
-      "open": 0,
-      "opacity": 1,
-      "type": 0,
-      "listType": 0
-    }
-  },
-  "dir": "",
-  "items": [],
+  "dir": "C:\\Users\\jatan\\AppData\\Roaming\\XXMI Launcher\\WWMI\\Mods",
   "presets": [],
   "settings": {
     "hotKeys": {
@@ -34,11 +10,26 @@
       }
     },
     "hotReload": true,
-    "toggle": 2,
+    "toggle": 0,
     "open": 0,
     "opacity": 1,
     "type": 0,
     "listType": 0
   },
-  "version": "1.0"
+  "data": {
+    "\\Skins\\Lupa - Lioness of Miquella": {
+      "source": "https://gamebanana.com/mods/604594",
+      "updatedAt": 1751581454000
+    },
+    "\\Baizhi\\⭐Custom Splash Art Offical⭐[MODP923]": {
+      "source": "https://gamebanana.com/mods/584895",
+      "updatedAt": 1751594782000
+    },
+    "\\UI\\Splash Art (diverse art type)": {
+      "source": "https://gamebanana.com/mods/575297",
+      "updatedAt": 1748683478000
+    }
+  },
+  "version": "1.0.0",
+  "savedAt": 1751657977814
 }

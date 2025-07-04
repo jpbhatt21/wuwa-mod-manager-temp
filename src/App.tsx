@@ -1,41 +1,36 @@
 import { useEffect, useState } from "react";
 import "./App.css";
 import { SidebarProvider } from "./components/ui/sidebar";
-import LeftSidebar from "./major-components/sidebar/Left";
-import RightSidebar from "./major-components/sidebar/Right";
-import Main from "./major-components/Main";
+import LeftSidebar from "./App/LeftSideBar/Left";
+import RightSidebar from "./App/RightSideBar/Right";
+import Main from "./App/Main/Main";
 import { useAtom, useAtomValue } from "jotai";
-import { plannedChangesAtom, firstLoadAtom, onlineModeAtom, tutorialAtom } from "./variables";
-import { main } from "./init";
-import { AnimatePresence, motion } from "motion/react";
-import Intro from "./major-components/Intro";
-import Consent from "./major-components/Consent";
+import { consentOverlayDataAtom, firstLoadAtom, onlineModeAtom, tutorialOpenAtom, progressOverlayDataAtom, leftSidebarOpenAtom, rightSidebarOpenAtom } from "./utils/vars";
+import { main } from "./utils/init";
+import { AnimatePresence } from "motion/react";
+import Intro from "./App/Intro/Intro";
+import Consent from "./App/Consent/Consent";
+import Progress from "./App/Progress/Progress";
 main();
 function App() {
-	const [leftSidebarOpen, setLeftSidebarOpen] = useState(true);
-	const [rightSidebarOpen, setRightSidebarOpen] = useState(true);
 	const online = useAtomValue(onlineModeAtom);
-	const [firstRender, setFirstRender] = useState(true);
 	const firstLoad = useAtomValue(firstLoadAtom);
-	const [tutorial, setTutorial] = useAtom(tutorialAtom);
-	const plannedChanges = useAtomValue(plannedChangesAtom);
-	useEffect(() => {
-		if (firstRender) {
-			setFirstRender(false);
-		}
-	}, [firstRender]);
+	const restoreInfo = useAtomValue(progressOverlayDataAtom);
+	const plannedChanges = useAtomValue(consentOverlayDataAtom);
+	const [tutorial, setTutorial] = useAtom(tutorialOpenAtom);
+	const [leftSidebarOpen, setLeftSidebarOpen] = useAtom(leftSidebarOpenAtom)
+	const [rightSidebarOpen, setRightSidebarOpen] = useAtom(rightSidebarOpenAtom)
 	useEffect(() => {
 		if (firstLoad) setTutorial(true);
 	}, [firstLoad]);
 	return (
 		<div id="background" className="flex flex-row fixed justify-start items-start w-full h-full wuwa-ft">
 			<SidebarProvider open={leftSidebarOpen}>
-				<LeftSidebar open={leftSidebarOpen} firstRender={firstRender} />
+				<LeftSidebar />
 			</SidebarProvider>
 			<SidebarProvider open={rightSidebarOpen}>
-				<RightSidebar firstRender={firstRender} />
+				<RightSidebar  />
 			</SidebarProvider>
-
 			<div className="w-full h-full fixed flex flex-row">
 				<div
 					className="h-full duration-200 ease-linear"
@@ -43,7 +38,7 @@ function App() {
 						minWidth: leftSidebarOpen ? "20.95rem" : "3.95rem",
 					}}
 				/>
-				<Main {...{ leftSidebarOpen, setLeftSidebarOpen, rightSidebarOpen, setRightSidebarOpen, online, firstRender }} />
+				<Main {...{ leftSidebarOpen, setLeftSidebarOpen, rightSidebarOpen, setRightSidebarOpen, online }} />
 				<div
 					className="h-full duration-200 ease-linear"
 					style={{
@@ -52,13 +47,8 @@ function App() {
 				/>
 			</div>
 			<AnimatePresence>{tutorial && <Intro />}</AnimatePresence>
-			<AnimatePresence>
-				{
-					plannedChanges.to.length>0 && plannedChanges.from.length>0 && (
-						<Consent/>
-					)
-				}
-			</AnimatePresence>
+			<AnimatePresence>{plannedChanges.title && <Consent />}</AnimatePresence>
+			<AnimatePresence>{restoreInfo.open && <Progress />}</AnimatePresence>
 		</div>
 	);
 }
