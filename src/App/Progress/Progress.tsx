@@ -1,34 +1,36 @@
-import { Button } from "@/components/ui/button";
-import { cancelRestore, getDirResructurePlan } from "@/utils/fsutils";
 import { consentOverlayDataAtom, progressOverlayDataAtom } from "@/utils/vars";
+import { cancelRestore, getDirResructurePlan } from "@/utils/fsutils";
+import { Button } from "@/components/ui/button";
 import { useAtom, useSetAtom } from "jotai";
 import { motion } from "motion/react";
 import { useEffect } from "react";
 
 function Progress() {
 	const [restoreInfo, setRestoreInfo] = useAtom(progressOverlayDataAtom);
+	
 	const setPlannedChanges = useSetAtom(consentOverlayDataAtom);
+
 	useEffect(() => {
 		if (restoreInfo.open && restoreInfo.finished && restoreInfo.title == "Restore Point Created") {
-			setPlannedChanges({ title: "test", from: [], to: [],next:true });
-			
+			setPlannedChanges({ title: "test", from: [], to: [], next: true });
 		}
 	}, [restoreInfo]);
+
 	return (
 		<motion.div
 			initial={{ opacity: 0, filter: "blur(6px)" }}
 			animate={{ opacity: 1, filter: "blur(0px)" }}
 			exit={{ opacity: 0, filter: "blur(6px)" }}
-			className="fixed z-50 w-full  duration-200 h-full flex flex-col text-accent items-center pointer-eve nts-none justify-center bg-background/50"
+			className="text-accent pointer-eve nts-none bg-background/50 fixed z-50 flex flex-col items-center justify-center w-full h-full duration-200"
 			style={{
 				backdropFilter: "blur(5px)",
 			}}>
-			<div className="text-3xl my-6 min-h-fit text-accent">{restoreInfo.title}</div>
-			<div className="w-120 h-8 bg-background/50 overflow-hidden rounded-lg border ">
-				<div id="restore-progress" className="h-8 bg-muted rounded-lg w-0 duration-100" />
+			<div className="min-h-fit text-accent my-6 text-3xl">{restoreInfo.title}</div>
+			<div className="w-120 bg-background/50 h-8 overflow-hidden border rounded-lg">
+				<div id="restore-progress" className="bg-muted w-0 h-8 duration-100 rounded-lg" />
 			</div>
-			<div className="w-120 flex items-center justify-between text-sm gap-2 text-accent/75 mt-2">
-				<label className="w-full whitespace-nowrap overflow-hidden text-ellipsis">
+			<div className="w-120 text-accent/75 flex items-center justify-between gap-2 mt-2 text-sm">
+				<label className="whitespace-nowrap text-ellipsis w-full overflow-hidden">
 					<span id="restore-progress-message"></span>
 				</label>
 				<label id="restore-progress-percentage">0%</label>

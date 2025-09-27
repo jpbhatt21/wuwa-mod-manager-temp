@@ -1,27 +1,26 @@
-import { Button } from "@/components/ui/button";
+import { listRestorePointContents, listRestorePoints, createRestorePoint, restoreFromPoint } from "@/utils/fsutils";
+import { DirRestructureItem, dontFocus, leftSidebarOpenAtom } from "@/utils/vars";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { File, Folder, FolderCogIcon, Plus, SaveAll } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { UNCATEGORIZED } from "@/utils/init";
-import { createRestorePoint, restoreFromPoint } from "@/utils/fsutils";
-import { listRestorePointContents, listRestorePoints } from "@/utils/fsutils";
-import { File, Folder, FolderCogIcon, Plus, SaveAll } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useAtomValue } from "jotai";
-import { DirRestructureItem, dontFocus, leftSidebarOpenAtom, LocalMod } from "@/utils/vars";
 
 function Restore() {
+	const [selectedRestorePoint, setSelectedRestorePoint] = useState(-1);
+	const [restore_points, setRestorePoints] = useState([] as string[]);
 	const [content, setContent] = useState([] as DirRestructureItem[]);
 	const [dialogOpen, setDialogOpen] = useState(false);
-	const [restore_points, setRestorePoints] = useState([] as string[]);
-	const [selectedRestorePoint, setSelectedRestorePoint] = useState(-1);
+	
 	const leftSidebarOpen = useAtomValue(leftSidebarOpenAtom);
 
 	useEffect(() => {
 		if (selectedRestorePoint > -1 && selectedRestorePoint < restore_points.length) {
 			setContent([]);
 			async function fetchContent() {
-				const data = await listRestorePointContents(restore_points[selectedRestorePoint]);
-				setContent(data);
+				setContent(await listRestorePointContents(restore_points[selectedRestorePoint]));
 			}
 			fetchContent();
 		}
@@ -37,6 +36,7 @@ function Restore() {
 		}
 		fetchRestorePoints();
 	}, [dialogOpen]);
+
 	return (
 		<Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
 			<DialogTrigger asChild>
@@ -81,13 +81,13 @@ function Restore() {
 						<div className="flex flex-col w-full h-full overflow-x-hidden overflow-y-auto text-gray-300 border rounded-sm">
 							{content.map((item, index) => (
 								<div className={"w-full flex  flex-col"} style={{ backgroundColor: index % 2 == 0 ? "#1b1b1b50" : "#31313150" }}>
-									<div className={"w-full h-10 flex items-center px-2 " + (index !== 0 ? "border-t " : "") + (index !== content.length - 1 || item.children?.length||0 > 0 ? "border-b" : "")}>
+									<div className={"w-full h-10 flex items-center px-2 " + (index !== 0 ? "border-t " : "") + (index !== content.length - 1 || item.children?.length || 0 > 0 ? "border-b" : "")}>
 										{item.icon ? <img src={item.icon} className="w-6 h-6 -ml-1 -mr-1 overflow-hidden rounded-full" alt="icon" /> : item.name == UNCATEGORIZED ? <FolderCogIcon className="aspect-square w-5 h-5 -mr-1 pointer-events-none" /> : <Folder className="w-4 h-4" />}
 										<Input onFocus={dontFocus} type="text" readOnly className={"w-full pointer-events-none overflow-hidden rounded-none border-border/0  cursor-default text-ellipsis h-10 " + ((index % 2) + 1)} style={{ backgroundColor: "#fff0" }} value={item.name} />
 									</div>
 									<div className="flex flex-col items-center w-full pl-4">
 										{item.children?.map((child, index) => (
-											<div className={"w-full h-10 border-l flex items-center px-2 "} style={{ backgroundColor: index % 2 == 0 ? "#1b1b1b50" : "#31313150", borderBottom: index == item.children?.length||0 - 1 ? "" : "1px dashed var(--border)" }}>
+											<div className={"w-full h-10 border-l flex items-center px-2 "} style={{ backgroundColor: index % 2 == 0 ? "#1b1b1b50" : "#31313150", borderBottom: index == item.children?.length || 0 - 1 ? "" : "1px dashed var(--border)" }}>
 												{child.isDirectory ? <Folder className="w-4 h-4" /> : <File className="w-4 h-4" />}
 												<Input onFocus={dontFocus} type="text" readOnly className={"w-full pointer-events-none overflow-hidden rounded-none border-border/0  cursor-default text-ellipsis h-10 " + ((index % 2) + 1)} style={{ backgroundColor: "#fff0" }} value={child.name} />
 											</div>

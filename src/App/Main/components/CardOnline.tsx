@@ -22,7 +22,7 @@ function CardOnline(data: OnlineMod & { now: number; onModClick: (data: OnlineMo
 			</div>
 
 			<div className=" w-fit bg-background/50 text-accent backdrop-blur -mt-72 flex flex-col items-center px-4 py-1 mb-48 rounded-br-lg pointer-events-none">{data._sModelName}</div>
-			<div className="bg-background/50 backdrop-blur  flex flex-col items-center w-full px-4 py-1">
+			<div className="bg-background/50 backdrop-blur flex flex-col items-center w-full px-4 py-1">
 				<Input readOnly type="text" className="w-56 cursor-pointer select-none focus-within:select-auto overflow-hidden h-8 focus-visible:ring-[0px] border-0  text-ellipsis" style={{ backgroundColor: "#fff0" }} defaultValue={data._sName} />
 				<div className="flex justify-between w-full h-6 text-xs">
 					<label className="flex items-center justify-center">

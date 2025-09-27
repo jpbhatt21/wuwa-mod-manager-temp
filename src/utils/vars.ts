@@ -1,11 +1,22 @@
-import { atom, createStore } from "jotai";
 import { FocusEvent, FocusEventHandler } from "react";
-export interface WWMMHotkey {
+import { atom, createStore } from "jotai";
+
+type TimeoutOrNull = ReturnType<typeof setTimeout> | null;
+
+interface WWMMHotkey {
 	name: string;
-	type:string;
+	type: string;
 	value: string;
 }
-export interface Settings {
+
+interface ModHotkey {
+	key: string;
+	type: string;
+	target: string;
+	name: string;
+}
+
+interface Settings {
 	hotKeys: { [key: string]: WWMMHotkey };
 	hotReload: boolean;
 	toggle: 0 | 2;
@@ -14,33 +25,31 @@ export interface Settings {
 	type: 0 | 1 | 2;
 	listType: 0 | 1;
 }
-export interface DirRestructureItem {
+
+interface DirRestructureItem {
 	name: string;
 	isDirectory?: boolean;
 	icon?: string;
 	children?: DirRestructureItem[];
 }
 
-export interface Preset {
-	name: string;
-	data: string[];
-	hotkey: string;
-}
-export interface LocalDataContent {
+interface LocalDataContent {
 	source?: string;
 	updatedAt?: number;
 	note?: string;
 }
-export interface LocalData {
+
+interface LocalData {
 	[path: string]: LocalDataContent;
 }
-export interface ModHotkey {
-	key: string;
-	type: string;
-	target: string;
+
+interface Preset {
 	name: string;
+	data: string[];
+	hotkey: string;
 }
-export interface LocalMod {
+
+interface LocalMod {
 	name: string;
 	isDir: boolean;
 	path: string;
@@ -57,7 +66,8 @@ export interface LocalMod {
 	note?: string;
 	icon?: string;
 }
-export interface Category {
+
+interface Category {
 	_idRow: number;
 	_sName: string;
 	_nItemCount: number;
@@ -66,7 +76,8 @@ export interface Category {
 	_sIconUrl: string;
 	_special?: boolean;
 }
-export interface DownloadItem {
+
+interface DownloadItem {
 	status: "pending" | "downloading" | "completed" | "failed";
 	preview: string;
 	category: string;
@@ -77,7 +88,7 @@ export interface DownloadItem {
 	fname: string;
 }
 
-export interface OnlineModImage {
+interface OnlineModImage {
 	_sType: string;
 	_sBaseUrl: string;
 	_sFile: string;
@@ -92,11 +103,11 @@ export interface OnlineModImage {
 	_wFile100: number;
 }
 
-export interface OnlineModPreviewMedia {
+interface OnlineModPreviewMedia {
 	_aImages: OnlineModImage[];
 }
 
-export interface OnlineModSubmitter {
+interface OnlineModSubmitter {
 	_idRow: number;
 	_sName: string;
 	_bIsOnline: boolean;
@@ -108,13 +119,13 @@ export interface OnlineModSubmitter {
 	_sMoreByUrl?: string;
 }
 
-export interface OnlineModCategory {
+interface OnlineModCategory {
 	_sName: string;
 	_sProfileUrl: string;
 	_sIconUrl: string;
 }
 
-export interface OnlineMod {
+interface OnlineMod {
 	_idRow: number;
 	_sModelName: string;
 	_sSingularTitle?: string;
@@ -142,65 +153,65 @@ export interface OnlineMod {
 	_sPeriod?: "today" | "yesterday" | "week" | "month" | "3month" | "6month" | "year" | "alltime";
 }
 
-export interface OnlineData {
+interface OnlineData {
 	banner: OnlineMod[];
 	[key: string]: OnlineMod[];
 }
 
-export type TimeoutOrNull = ReturnType<typeof setTimeout> | null;
-export function dontFocus(e: FocusEvent<HTMLInputElement, Element>): FocusEventHandler<HTMLInputElement> {
+function dontFocus(e: FocusEvent<HTMLInputElement, Element>): FocusEventHandler<HTMLInputElement> {
 	e.preventDefault();
 	e.stopPropagation();
 	e.currentTarget.blur();
 	return () => {};
 }
-export const previewUri = "http://127.0.0.1:5000/preview/";
-export const store = createStore();
 
-export const firstLoadAtom = atom(false);
-export const onlineModeAtom = atom(false);
-export const leftSidebarOpenAtom = atom(true);
-export const rightSidebarOpenAtom = atom(true);
+const previewUri = "http://127.0.0.1:5000/preview/";
+const store = createStore();
 
-export const tutorialOpenAtom = atom(false);
-export const tutorialPageAtom = atom(0);
-export const refreshAppIdAtom = atom(0);
-export const modRootDirAtom = atom("");
-export const settingsDataAtom = atom({} as Settings);
-export const categoryListAtom = atom([] as Category[]);
+const firstLoadAtom = atom(false);
+const onlineModeAtom = atom(false);
+const leftSidebarOpenAtom = atom(true);
+const rightSidebarOpenAtom = atom(true);
 
-export const progressOverlayDataAtom = atom({ title: "", open: false, finished: false });
-export const consentOverlayDataAtom = atom({ title: "", from: [] as DirRestructureItem[], to: [] as DirRestructureItem[], next: false });
+const tutorialOpenAtom = atom(false);
+const tutorialPageAtom = atom(0);
+const refreshAppIdAtom = atom(0);
+const modRootDirAtom = atom("");
+const settingsDataAtom = atom({} as Settings);
+const categoryListAtom = atom([] as Category[]);
 
-export const localModListAtom = atom([] as LocalMod[]);
-export const localFilteredModListAtom = atom([] as LocalMod[]);
-export const localPresetListAtom = atom([] as Preset[]);
+const progressOverlayDataAtom = atom({ title: "", open: false, finished: false });
+const consentOverlayDataAtom = atom({ title: "", from: [] as DirRestructureItem[], to: [] as DirRestructureItem[], next: false });
 
-export const localFilterNameAtom = atom("All");
-export const localCategoryNameAtom = atom("All");
+const localModListAtom = atom([] as LocalMod[]);
+const localFilteredModListAtom = atom([] as LocalMod[]);
+const localPresetListAtom = atom([] as Preset[]);
 
-export const localSelectedModAtom = atom(0);
-export const localSelectedPresetAtom = atom(-1);
+const localFilterNameAtom = atom("All");
+const localCategoryNameAtom = atom("All");
 
-export const localPathAtom = atom("");
-export const localDataAtom = atom({} as LocalData);
+const localSelectedModAtom = atom(0);
+const localSelectedPresetAtom = atom(-1);
 
-export const onlinePathAtom = atom("home");
-export const onlineDataAtom = atom({ banner: [] } as OnlineData);
+const localPathAtom = atom("");
+const localDataAtom = atom({} as LocalData);
 
-export const onlineDownloadListAtom = atom([] as DownloadItem[]);
-export const onlineSelectedItemAtom = atom("-1");
+const onlinePathAtom = atom("home");
+const onlineDataAtom = atom({ banner: [] } as OnlineData);
 
-export const apiRoutes = {
+const onlineDownloadListAtom = atom([] as DownloadItem[]);
+const onlineSelectedItemAtom = atom("-1");
+
+const apiRoutes = {
 	getCategoryList: () => "https://gamebanana.com/apiv11/Mod/Categories?_idCategoryRow=29524&_sSort=a_to_z&_bShowEmpty=true", //Char Categories
 	getGenericCategoryList: () => "https://gamebanana.com/apiv11/Mod/Categories?_idGameRow=20357&_sSort=a_to_z&_bShowEmpty=true", //Skins | UI | Other/Misc
 	home: (sort = "default", page = 1) => "https://gamebanana.com/apiv11/Game/20357/Subfeed?_sSort=" + sort + "&_nPage=" + page,
-	category: (cat="Skins", sort = "", page = 1) => "https://gamebanana.com/apiv11/Mod/Index?_nPerpage=15&_aFilters%5BGeneric_Category%5D=" + ((cat.split("/").length > 1?store.get(categoryListAtom).find((x) => x._sName == cat.split("/")[1])?._idRow :genericCategories.find((x) => x._sName == cat.split("/")[0])?._idRow)||0) + (sort != "" ? " &_sSort=" + sort : "") + "&_nPage=" + page,
+	category: (cat = "Skins", sort = "", page = 1) => "https://gamebanana.com/apiv11/Mod/Index?_nPerpage=15&_aFilters%5BGeneric_Category%5D=" + ((cat.split("/").length > 1 ? store.get(categoryListAtom).find((x) => x._sName == cat.split("/")[1])?._idRow : genericCategories.find((x) => x._sName == cat.split("/")[0])?._idRow) || 0) + (sort != "" ? " &_sSort=" + sort : "") + "&_nPage=" + page,
 	banner: () => "https://gamebanana.com/apiv11/Game/20357/TopSubs",
 	mod: (modTitle = "Mod/0") => "https://gamebanana.com/apiv11/" + modTitle + "/ProfilePage",
 	modUpdates: (modTitle = "Mod/0") => "https://gamebanana.com/apiv11/" + modTitle + "/Updates?_nPage=1&_nPerpage=1",
 };
-export const genericCategories = [
+const genericCategories = [
 	{
 		_idRow: 29524,
 		_sName: "Skins",
@@ -226,7 +237,7 @@ export const genericCategories = [
 		_sIconUrl: "https://images.gamebanana.com/img/ico/ModCategory/6692c90cba314.png",
 	},
 ];
-export function getTimeDifference(startTimestamp: number, endTimestamp: number) {
+function getTimeDifference(startTimestamp: number, endTimestamp: number) {
 	const secInMinute = 60;
 	const secInHour = secInMinute * 60;
 	const secInDay = secInHour * 24;
@@ -250,3 +261,5 @@ export function getTimeDifference(startTimestamp: number, endTimestamp: number) 
 		return years + "y";
 	}
 }
+export type { TimeoutOrNull, WWMMHotkey, ModHotkey, Settings, DirRestructureItem, LocalDataContent, LocalData, Preset, LocalMod, Category, DownloadItem, OnlineModImage, OnlineModPreviewMedia, OnlineModSubmitter, OnlineModCategory, OnlineMod, OnlineData };
+export { dontFocus, previewUri, store, firstLoadAtom, onlineModeAtom, leftSidebarOpenAtom, rightSidebarOpenAtom, tutorialOpenAtom, tutorialPageAtom, refreshAppIdAtom, modRootDirAtom, settingsDataAtom, categoryListAtom, progressOverlayDataAtom, consentOverlayDataAtom, localModListAtom, localFilteredModListAtom, localPresetListAtom, localFilterNameAtom, localCategoryNameAtom, localSelectedModAtom, localSelectedPresetAtom, localPathAtom, localDataAtom, onlinePathAtom, onlineDataAtom, onlineDownloadListAtom, onlineSelectedItemAtom, apiRoutes, genericCategories, getTimeDifference };

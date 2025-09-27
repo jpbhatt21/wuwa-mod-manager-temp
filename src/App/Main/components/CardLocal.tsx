@@ -16,7 +16,7 @@ function CardLocal({ root, item, wwmm, selectedItem, setSelectedItem, index, las
 				}}
 				onMouseUp={(e) => {
 					if (e.button == settings.toggle) {
-						renameMod(item.path, item.enabled ? "DISABLED_" + item.name : item.name.replaceAll("DISABLED_", ""));
+						renameMod(item.path, item.enabled ? "DISABLED_" + item.name.replaceAll("DISABLED_", "") : item.name.replaceAll("DISABLED_", ""));
 						e.preventDefault();
 					} else {
 						setSelectedItem(index);
@@ -35,7 +35,7 @@ function CardLocal({ root, item, wwmm, selectedItem, setSelectedItem, index, las
 					onError={(e) => {
 						e.currentTarget.src = wwmm;
 					}}></img>
-				<div className="bg-background/50 backdrop-blur  flex items-center w-full px-4 py-1">
+				<div className="bg-background/50 backdrop-blur flex items-center w-full px-4 py-1">
 					{item.isDir ? <Folder /> : <File />}
 					<Input readOnly type="text" className="w-56 cursor-pointer select-none focus-within:select-auto overflow-hidden h-12 focus-visible:ring-[0px] border-0  text-ellipsis" style={{ backgroundColor: "#fff0" }} defaultValue={item.name.replaceAll("DISABLED_", "")} />
 				</div>

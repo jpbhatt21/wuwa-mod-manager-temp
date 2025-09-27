@@ -1,5 +1,5 @@
 import { AppWindow, CircleSlash, Focus, Maximize, Maximize2, Mouse, MousePointerClick, SettingsIcon } from "lucide-react";
-import { leftSidebarOpenAtom, localPresetListAtom, settingsDataAtom, Preset } from "@/utils/vars";
+import { leftSidebarOpenAtom, localPresetListAtom, settingsDataAtom } from "@/utils/vars";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Slider } from "@/components/ui/slider";
@@ -12,11 +12,15 @@ import { saveConfig } from "@/utils/fsutils";
 let keysdown: any = [];
 let keys: any = [];
 let bg = document.querySelector("body");
+
 function Settings() {
-	const leftSidebarOpen = useAtomValue(leftSidebarOpenAtom);
-	const [settings, setSettings] = useAtom(settingsDataAtom);
 	const [presets, setPresets] = useAtom(localPresetListAtom);
+	const [settings, setSettings] = useAtom(settingsDataAtom);
+	
+	const leftSidebarOpen = useAtomValue(leftSidebarOpenAtom);
+
 	if (JSON.stringify(settings) == "{}") return <></>;
+
 	return (
 		<Dialog>
 			<DialogTrigger asChild>
@@ -60,7 +64,7 @@ function Settings() {
 								className="w-full"
 								onValueChange={(e) => {
 									setSettings((prev) => {
-										prev.toggle = parseInt(e) as 0|2;
+										prev.toggle = parseInt(e) as 0 | 2;
 										return prev;
 									});
 									saveConfig();
@@ -113,7 +117,7 @@ function Settings() {
 									defaultValue={settings.type.toString()}
 									onValueChange={(e) => {
 										setSettings((prev) => {
-											prev.type = parseInt(e) as 0|1|2;
+											prev.type = parseInt(e) as 0 | 1 | 2;
 											return prev;
 										});
 										setWindowType(parseInt(e));

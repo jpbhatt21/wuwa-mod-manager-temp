@@ -2,20 +2,24 @@ import { localFilterNameAtom, localSelectedPresetAtom, localPresetListAtom, modR
 import { SidebarContent, SidebarGroup, SidebarGroupLabel } from "@/components/ui/sidebar";
 import { refreshRootDir, applyPreset, saveConfig, selectRootDir } from "@/utils/fsutils";
 import { Check, Circle, Edit, Folder, Plus, Save, X } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
 import { Separator } from "@radix-ui/react-separator";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAtom, useAtomValue } from "jotai";
-import { AnimatePresence, motion } from "motion/react";
+
 let focusedPreset = -1;
-function LSCLocal() {
-	const [localFilter, setLocalFilter] = useAtom(localFilterNameAtom);
-	const [localPresets, setLocalPresets] = useAtom(localPresetListAtom);
+
+function LeftLocal() {
 	const [localSelectedPreset, setLocalSelectedPreset] = useAtom(localSelectedPresetAtom);
+	const [localPresets, setLocalPresets] = useAtom(localPresetListAtom);
+	const [localFilter, setLocalFilter] = useAtom(localFilterNameAtom);
 	const [localModList, setLocalModList] = useAtom(localModListAtom);
+	
 	const leftSidebarOpen = useAtomValue(leftSidebarOpenAtom);
-	const online = useAtomValue(onlineModeAtom);
 	const rootDir = useAtomValue(modRootDirAtom);
+	const online = useAtomValue(onlineModeAtom);
+
 	function update_preset(i: number, name: string, save = false, del = false) {
 		let temp: Preset[] = [...localPresets];
 		let created = false;
@@ -29,7 +33,7 @@ function LSCLocal() {
 			function explorer(items: LocalMod[]) {
 				for (let item of items) {
 					temp[i].data.push(item.path);
-					if (item.children && item.children.length > 0 && item.depth < 1) explorer(item.children);
+					if (item.children && item.children.length > 0 && item.depth < 2 && (!item.children.filter(x=>x.name.endsWith(".ini")||item.depth<1))) explorer(item.children);
 				}
 			}
 			explorer(localModList);
@@ -51,6 +55,7 @@ function LSCLocal() {
 		}
 		saveConfig();
 	}
+
 	return (
 		<div
 			className="flex flex-col h-full min-w-full duration-300"
@@ -80,6 +85,7 @@ function LSCLocal() {
 						},
 					].map((fil) => (
 						<Button
+							key={"filter " + fil.name}
 							onClick={() => {
 								setLocalFilter(fil.name);
 							}}
@@ -222,7 +228,7 @@ function LSCLocal() {
 				<SidebarContent className="flex flex-row items-center w-full gap-2 px-2">
 					<Button
 						className="aspect-square flex items-center justify-center w-10 h-10"
-						onClick={async() => {
+						onClick={async () => {
 							await selectRootDir();
 							// window.location.reload();
 						}}
@@ -247,4 +253,4 @@ function LSCLocal() {
 	);
 }
 
-export default LSCLocal;
+export default LeftLocal;

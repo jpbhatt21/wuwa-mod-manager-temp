@@ -1,27 +1,31 @@
+import { categoryListAtom, refreshAppIdAtom, localFilteredModListAtom, localSelectedModAtom, previewUri, modRootDirAtom, onlineModeAtom, localDataAtom, LocalMod } from "@/utils/vars";
+import { ArrowUpRightFromSquareIcon, Check, ChevronDown, CircleSlash, Edit, File, Folder, Link } from "lucide-react";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { renameMod, saveConfig, savePreviewImage } from "@/utils/fsutils";
+import { SidebarGroup } from "@/components/ui/sidebar";
+import { openPath } from "@tauri-apps/plugin-opener";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { SidebarGroup } from "@/components/ui/sidebar";
-import { categoryListAtom, refreshAppIdAtom, localFilteredModListAtom, localSelectedModAtom, previewUri, modRootDirAtom, onlineModeAtom, localDataAtom, LocalMod } from "@/utils/vars";
 import { useAtom, useAtomValue } from "jotai";
-import { ArrowUpRightFromSquareIcon, Check, ChevronDown, CircleSlash, Edit, File, Folder, Link } from "lucide-react";
 import { useEffect, useState } from "react";
-import wwmm from "@/wwmm.png";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
-import { renameMod, saveConfig, savePreviewImage } from "@/utils/fsutils";
-import { openPath } from "@tauri-apps/plugin-opener";
-function RSCLocal() {
-	const [item, setItem] = useState({} as LocalMod);
-	const online = useAtomValue(onlineModeAtom);
-	const [localData, setLocalData] = useAtom(localDataAtom);
-	const localSelectedItem = useAtomValue(localSelectedModAtom);
+import wwmm from "@/wwmm.png";
+
+function RightLocal() {
 	const localFilteredItems = useAtomValue(localFilteredModListAtom);
-	const [popoverOpen, setPopoverOpen] = useState(false);
-	const root = useAtomValue(modRootDirAtom);
+	const localSelectedItem = useAtomValue(localSelectedModAtom);
 	const lastUpdated = useAtomValue(refreshAppIdAtom);
-	const [category, setCategory] = useState({ name: "-1", icon: "" });
 	const categories = useAtomValue(categoryListAtom);
+	const online = useAtomValue(onlineModeAtom);
+	const root = useAtomValue(modRootDirAtom);
+
+	const [localData, setLocalData] = useAtom(localDataAtom);
+
+	const [category, setCategory] = useState({ name: "-1", icon: "" });
+	const [popoverOpen, setPopoverOpen] = useState(false);
+	const [item, setItem] = useState({} as LocalMod);
+
 	useEffect(() => {
 		if (localFilteredItems.length > localSelectedItem && localFilteredItems[localSelectedItem]) setItem(localFilteredItems[localSelectedItem]);
 		if (!localFilteredItems[localSelectedItem]) return;
@@ -34,18 +38,18 @@ function RSCLocal() {
 
 	return (
 		<div
-			className="flex min-w-full h-full flex-col gap-0 duration-300"
+			className="flex flex-col h-full min-w-full gap-0 duration-300"
 			style={{
 				opacity: online ? 0 : 1,
 				transitionDelay: online ? "0s" : "0.3s",
 				pointerEvents: online ? "none" : "auto",
 			}}>
-			<div className="flex items-center justify-center gap-3 px-3 h-16 min-w-16 border-b">
-				<Button className="bg-input/0 hover:bg-input/0 h-10 w-6 -mr-2 text-white">{item.isDir ? <Folder className="scale-150" /> : <File className="scale-150" />}</Button>
+			<div className="min-w-16 flex items-center justify-center h-16 gap-3 px-3 border-b">
+				<Button className="bg-input/0 hover:bg-input/0 w-6 h-10 -mr-2 text-white">{item.isDir ? <Folder className="scale-150" /> : <File className="scale-150" />}</Button>
 				<Input
 					onBlur={(e) => {
 						let currentValue = e.currentTarget.value.replaceAll("DISABLED_", "");
-						let new_path:string|string[] = item.path.split("\\");
+						let new_path: string | string[] = item.path.split("\\");
 						new_path.pop();
 						new_path.push(currentValue);
 						new_path = new_path.join("\\");
@@ -71,32 +75,32 @@ function RSCLocal() {
 				/>
 
 				<div
-					className="min-h-8 text-accent hover:border-border border-border/0 border min-w-8 p-2 flex items-center justify-center rounded-lg bg-pat2 duration-200 hover:bg-pat1"
+					className="min-h-8 text-accent hover:border-border border-border/0 min-w-8 bg-pat2 hover:bg-pat1 flex items-center justify-center p-2 duration-200 border rounded-lg"
 					onClick={() => {
 						openPath(root + item.path);
 					}}>
-					<ArrowUpRightFromSquareIcon className="h-full w-full" />
+					<ArrowUpRightFromSquareIcon className="w-full h-full" />
 				</div>
 			</div>
-			<SidebarGroup className="px-1 min-h-82 mt-1 select-none">
+			<SidebarGroup className="min-h-82 px-1 mt-1 select-none">
 				<Edit
 					onClick={() => {
 						// socket.emit("set_preview_image", { path: item.path });
 						savePreviewImage(root + item.path);
 					}}
-					className="min-h-12 p-3 min-w-12 w-12 bg-background/50 z-25 border text-accent rounded-tr-md rounded-bl-md self-end -mb-12"
+					className="min-h-12 min-w-12 bg-background/50 z-25 text-accent rounded-tr-md rounded-bl-md self-end w-12 p-3 -mb-12 border"
 				/>
 				<img
 					id="preview"
-					className="w-82 h-82 duration-150 bg-background  rounded-lg border object-cover"
+					className="w-82 h-82 bg-background object-cover duration-150 border rounded-lg"
 					onError={(e) => {
 						e.currentTarget.src = wwmm;
 					}}
 					src={previewUri + root + item.path + "?" + lastUpdated + "?" + lastUpdated}></img>
 			</SidebarGroup>
 			<SidebarGroup className="px-1 min-h-42.5 mt-1">
-				<div className="flex flex-col border  rounded-lg w-full">
-					<div className="flex w-full rounded-lg items-center justify-between bg-pat2 p-1 ">
+				<div className="flex flex-col w-full border rounded-lg">
+					<div className="bg-pat2  flex items-center justify-between w-full p-1 rounded-lg">
 						<Button className=" h-12 bg-accent/0 hover:bg-accent/0   min-w-28.5 w-28.5 text-accent">Category</Button>
 
 						{item.depth == 1 ? (
@@ -106,7 +110,7 @@ function RSCLocal() {
 										{category.name != "-1" ? (
 											<>
 												<div
-													className="h-full  rounded-full aspect-square pointer-events-none flex items-center justify-center"
+													className="aspect-square flex items-center justify-center h-full rounded-full pointer-events-none"
 													style={
 														category.name != "Uncategorized"
 															? {
@@ -119,7 +123,7 @@ function RSCLocal() {
 													}>
 													{/* {category.name == "Uncategorized" && ques({ className: " h-full aspect-square scale-175 pointer-events-none " })} */}
 												</div>
-												<div className="w-30 overflow-hidden text-ellipsis pointer-events-none break-words">{category.name}</div>
+												<div className="w-30 text-ellipsis overflow-hidden break-words pointer-events-none">{category.name}</div>
 											</>
 										) : (
 											"Select"
@@ -127,7 +131,7 @@ function RSCLocal() {
 										<ChevronDown />
 									</div>
 								</PopoverTrigger>
-								<PopoverContent className="w-80 border rounded-lg my-2 p-0 mr-2">
+								<PopoverContent className="w-80 p-0 my-2 mr-2 border rounded-lg">
 									<Command>
 										<CommandInput placeholder="Search category..." className="h-12" />
 										<CommandList>
@@ -138,7 +142,7 @@ function RSCLocal() {
 														key={cat._sName}
 														value={cat._sName}
 														onSelect={(currentValue) => {
-															let new_path: string|string[] = item.path.split("\\");
+															let new_path: string | string[] = item.path.split("\\");
 															new_path[1] = currentValue;
 															new_path = new_path.join("\\");
 															renameMod(item.path, new_path, true);
@@ -157,7 +161,7 @@ function RSCLocal() {
 															setPopoverOpen(false);
 														}}>
 														<div
-															className="h-12 rounded-full flex items-center justify-center aspect-square pointer-events-none"
+															className="aspect-square flex items-center justify-center h-12 rounded-full pointer-events-none"
 															style={
 																cat._sName != "Uncategorized"
 																	? {
@@ -170,7 +174,7 @@ function RSCLocal() {
 															}>
 															{/* {cat.name == "Uncategorized" && ques({ className: " h-full text-inherit aspect-square scale-175 pointer-events-none " })} */}
 														</div>
-														<div className="w-35  overflow-hidden text-ellipsis break-words">{cat._sName}</div>
+														<div className="w-35 text-ellipsis overflow-hidden break-words">{cat._sName}</div>
 														<Check className={cn("ml-auto", category.name === cat._sName ? "opacity-100" : "opacity-0")} />
 													</CommandItem>
 												))}
@@ -186,7 +190,7 @@ function RSCLocal() {
 						)}
 					</div>
 
-					<div className="flex bg-pat1 rounded-lg w-full p-1 justify-between">
+					<div className="bg-pat1 flex justify-between w-full p-1 rounded-lg">
 						<Button className="bg-input/0 hover:bg-input/0 h-12 w-28.5 text-accent">Source</Button>
 						<div className="w-48.5 flex items-center px-1">
 							<Input
@@ -210,12 +214,12 @@ function RSCLocal() {
 								key={localData[item.truePath]?.source}
 								defaultValue={localData[item.truePath]?.source}
 							/>
-							<a href={localData[item.truePath]?.source} target="_blank" className="rounded-lg bg-pat2 duration-200 hover:brightness-150 p-2">
-								<Link className="h-4 w-4 " />
+							<a href={localData[item.truePath]?.source} target="_blank" className="bg-pat2 hover:brightness-150 p-2 duration-200 rounded-lg">
+								<Link className=" w-4 h-4" />
 							</a>
 						</div>
 					</div>
-					<div className="flex bg-pat2 rounded-lg w-full p-1 justify-between">
+					<div className="bg-pat2 flex justify-between w-full p-1 rounded-lg">
 						<Button className="bg-input/0 hover:bg-input/0 h-12 w-28.5 text-accent">Note</Button>
 						<div className="w-48.5 flex items-center px-1">
 							<Input
@@ -243,22 +247,22 @@ function RSCLocal() {
 				</div>
 			</SidebarGroup>
 			<SidebarGroup
-				className="px-1 my-1 opacity-0 duration-200"
+				className="px-1 my-1 duration-200 opacity-0"
 				style={{
 					opacity: item.keys?.length > 0 ? 1 : 0,
 				}}>
-				<div className="flex flex-col border h-full  overflow-hidden rounded-lg w-full">
-					<div className="flex bg-pat1 text-accent  rounded-lg w-full p-1 justify-center items-center min-h-14">Hot Keys</div>
+				<div className="flex flex-col w-full h-full overflow-hidden border rounded-lg">
+					<div className="bg-pat1 text-accent min-h-14 flex items-center justify-center w-full p-1 rounded-lg">Hot Keys</div>
 					<div className="w-full h-full">
 						<div className="text-gray-300 h-full max-h-[calc(100vh-39.75rem)] w-full overflow-y-auto overflow-x-hidden">
-							<div className="min-h-8 flex text-accent items-center justify-center bg-pat2">
-								<label className="w-1/2 text-c px-4">Key</label>
-								<label className="w-1/2 text-c px-4">Action</label>
+							<div className="min-h-8 text-accent bg-pat2 flex items-center justify-center">
+								<label className="text-c w-1/2 px-4">Key</label>
+								<label className="text-c w-1/2 px-4">Action</label>
 							</div>
 							{item.keys?.map((hotkey, index) => (
-								<div className={"flex w-full items-center justify-center h-8 bg-pat" + (1 + (index % 2))}>
-									<label className="w-1/2 text-c px-4">{hotkey.key}</label>
-									<label className="w-1/2 text-c px-4">{hotkey.name}</label>
+								<div key={index+item.path} className={"flex w-full items-center justify-center h-8 bg-pat" + (1 + (index % 2))}>
+									<label className="text-c w-1/2 px-4">{hotkey.key}</label>
+									<label className="text-c w-1/2 px-4">{hotkey.name}</label>
 								</div>
 							))}
 						</div>
@@ -269,4 +273,4 @@ function RSCLocal() {
 	);
 }
 
-export default RSCLocal;
+export default RightLocal;

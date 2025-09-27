@@ -1,10 +1,10 @@
-import { EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { EyeOff } from "lucide-react";
 
-function Blur({blur}: { blur: boolean }) {
+function Blur({ blur }: { blur: boolean }) {
 	return (
 		<div
-			className="w-full h-full  object-cover pointer-events-none bg-center flex items-center justify-center duration-200"
+			className="flex items-center justify-center object-cover w-full h-full duration-200 bg-center pointer-events-none"
 			style={{
 				background: blur ? "#0008" : "#0000",
 				backdropFilter: blur ? "blur(12px)" : "blur(0px)",

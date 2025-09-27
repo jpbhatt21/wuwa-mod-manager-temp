@@ -232,16 +232,12 @@ async function restructureDir(entries: LocalMod[]) {
 				try {
 					await mkdir(joinPath(root, category._sName));
 				} catch (e) {}
-				let suffix = "";
-				let counter = 0;
-				while (true) {
-					try {
-						await rename(joinPath(root, entry.path), joinPath(root, category._sName, entry.name + suffix));
-						break;
-					} catch (e) {
-						suffix = " (" + ++counter + ")";
-					}
+				if(await exists(joinPath(root, category._sName, entry.name))) {
+					alert("A folder with the name " + entry.name + " already exists in the category " + category._sName + ". Please rename or remove it before restructuring.");
+					
 				}
+				await rename(joinPath(root, entry.path), joinPath(root, category._sName, entry.name));
+				
 				break;
 			}
 		}
@@ -287,9 +283,100 @@ export async function selectRootDir() {
 	// store.set(localModListAtom, await readDirRecr(""));
 	// saveConfig();
 }
+/**
+ * A list of reserved file names in Windows.
+ * These are checked case-insensitively.
+ * See: https://docs.microsoft.com/en-us/windows/win32/fileio/naming-a-file
+ */
+const reservedWindowsNames = /^(con|prn|aux|nul|com\d|lpt\d)$/i;
+
+/**
+ * A regex to match characters that are illegal in file names across
+ * Windows, macOS, and Linux. This includes control characters (0-31).
+ */
+const illegalCharacters = /[<>:"/\\|?*\x00-\x1F]/g;
+
+/**
+ * Options for the sanitizeFileName function.
+ */
+interface SanitizeOptions {
+  /**
+   * The character to use for replacing illegal characters.
+   * @default '_'
+   */
+  replacement?: string;
+  /**
+   * The name to return if the sanitized result is an empty string.
+   * @default 'untitled'
+   */
+  defaultName?: string;
+  /**
+   * The maximum length for the sanitized file name.
+   * @default 255
+   */
+  maxLength?: number;
+}
+
+/**
+ * Sanitizes a string to be used as a safe file or directory name.
+ *
+ * This function performs the following actions:
+ * - Replaces characters that are illegal in Windows, macOS, and Linux file names.
+ * - Removes leading and trailing whitespace and dots.
+ * - Prepends an underscore to reserved Windows filenames (CON, PRN, AUX, etc.).
+ * - Truncates the name to a specified maximum length.
+ * - Returns a default name if the sanitization results in an empty string.
+ *
+ * @param input The string to sanitize.
+ * @param options Optional configuration for the sanitization process.
+ * @returns A sanitized string safe for use as a file or directory name.
+ */
+export function sanitizeFileName(
+  input: string,
+  options: SanitizeOptions = {}
+): string {
+  // 1. Set default options
+  const {
+    replacement = '_',
+    defaultName = 'untitled',
+    maxLength = 255,
+  } = options;
+
+  // Ensure input is a string, return default if not
+  if (typeof input !== 'string') {
+    return defaultName;
+  }
+
+  // 2. Replace illegal characters with the replacement string.
+  let sanitized = input.replace(illegalCharacters, replacement);
+
+  // 3. Handle reserved Windows names by prepending the replacement character.
+  // We check the base name (before any extension).
+  const baseName = sanitized.split('.')[0];
+  if (reservedWindowsNames.test(baseName)) {
+    sanitized = replacement + sanitized;
+  }
+
+  // 4. Remove leading/trailing whitespace and dots.
+  sanitized = sanitized.trim().replace(/^[.]+|[.]+$/g, '');
+
+  // 5. Truncate the string to the maximum allowed length.
+  if (sanitized.length > maxLength) {
+    sanitized = sanitized.substring(0, maxLength);
+    // Re-trim in case we cut in the middle of a trailing dot or space sequence
+    sanitized = sanitized.trim().replace(/^[.]+|[.]+$/g, '');
+  }
+
+  // 6. If the resulting string is empty, return the default name.
+  if (sanitized.length === 0) {
+    return defaultName;
+  }
+
+  return sanitized;
+}
 export async function createModDownloadDir(cat: string, dir: string) {
 	if (!cat || !dir) return;
-	let path = root + "\\" + cat + "\\" + sanitize(dir);
+	let path = root + "\\" + cat + "\\" + dir;
 	if (await exists(path)) return;
 	return mkdir(path, { recursive: true });
 }
@@ -360,6 +447,8 @@ export async function renameMod(path: string, newName: string, pathMode = false)
 						item.trueParent = item.parent.replaceAll("DISABLED_", "");
 					}
 					item.path = newPath;
+					if(!pathMode)
+					item.name = newName;
 					item.truePath = newPath.replaceAll("DISABLED_", "");
 					item.children = renameDirContentRecr(item.children, path, newPath);
 					break;

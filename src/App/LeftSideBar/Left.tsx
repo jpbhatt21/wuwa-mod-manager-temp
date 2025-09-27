@@ -1,20 +1,20 @@
 import { Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupLabel } from "@/components/ui/sidebar";
-import { Separator } from "@/components/ui/separator";
-import { Button } from "@/components/ui/button";
-
-import LSCOnline from "@/App/LeftSideBar/LeftOnline";
-import LSCLocal from "@/App/LeftSideBar/LeftLocal";
+import { leftSidebarOpenAtom, onlineModeAtom } from "@/utils/vars";
 import Settings from "@/App/LeftSideBar/components/Settings";
 import Restore from "@/App/LeftSideBar/components/Restore";
-
 import { Globe, HardDriveDownload } from "lucide-react";
-import { leftSidebarOpenAtom, onlineModeAtom } from "@/utils/vars";
+import { Separator } from "@/components/ui/separator";
+import LeftOnline from "@/App/LeftSideBar/LeftOnline";
+import LeftLocal from "@/App/LeftSideBar/LeftLocal";
+import { Button } from "@/components/ui/button";
 import { useAtom, useAtomValue } from "jotai";
 import logo from "@/logo.png";
 
 function LeftSidebar() {
 	const leftSidebarOpen = useAtomValue(leftSidebarOpenAtom);
+	
 	const [online, setOnline] = useAtom(onlineModeAtom);
+
 	return (
 		<Sidebar collapsible="icon">
 			<SidebarContent className=" gap-0 overflow-hidden border border-r-0">
@@ -77,8 +77,8 @@ function LeftSidebar() {
 					}}
 				/>
 				<SidebarGroup className="flex flex-row w-full h-full p-0 overflow-hidden">
-					<LSCLocal />
-					<LSCOnline />
+					<LeftLocal />
+					<LeftOnline />
 				</SidebarGroup>
 				<Separator
 					className="w-full ease-linear duration-200 min-h-[1px] mt-2.5 bg-border"

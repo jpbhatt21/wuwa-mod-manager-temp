@@ -1,17 +1,22 @@
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { modRootDirAtom, TimeoutOrNull, tutorialPageAtom } from "@/utils/vars";
 import { getDirResructurePlan } from "@/utils/fsutils";
 import { selectRootDir } from "@/utils/fsutils";
-import { modRootDirAtom, TimeoutOrNull, tutorialPageAtom } from "@/utils/vars";
-import { motion } from "motion/react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { invoke } from "@tauri-apps/api/core";
 import { useAtom, useAtomValue } from "jotai";
 import { useEffect, useState } from "react";
-import { invoke } from "@tauri-apps/api/core";
+import { motion } from "motion/react";
+
 let clicktimeout: TimeoutOrNull = null;
+
 function Intro() {
 	const [page, setPage] = useAtom(tutorialPageAtom);
+
+	const rootDir = useAtomValue(modRootDirAtom);
+
 	const [user, setUser] = useState("Rover");
-	const dir = useAtomValue(modRootDirAtom);
+
 	useEffect(() => {
 		async function getUsername() {
 			setUser(await invoke("get_username"));
@@ -22,6 +27,7 @@ function Intro() {
 			clicktimeout = null;
 		}, 1500);
 	}, []);
+
 	return (
 		<>
 			<motion.div
@@ -76,7 +82,7 @@ function Intro() {
 							opacity: page == 2 ? 1 : 0,
 							pointerEvents: page == 2 ? "auto" : "none",
 						}}>
-						{dir == "" ? (
+						{rootDir == "" ? (
 							<div className=" text-accent/75 flex flex-col items-center gap-5 my-2 text-2xl pointer-events-auto">
 								We couldn't find your Mod Directory
 								<Button
@@ -90,7 +96,7 @@ function Intro() {
 						) : (
 							<div className="text-accent flex flex-col items-center gap-5 my-2 text-2xl">
 								Confirm Your Mod Directory
-								<Input type="text" className="w-80 border-border/0 bg-input/50 text-accent/75 text-ellipsis h-10 overflow-hidden text-center cursor-default" value={dir?.replace("/", "\\") ?? "-"} />
+								<Input type="text" className="w-80 border-border/0 bg-input/50 text-accent/75 text-ellipsis h-10 overflow-hidden text-center cursor-default" value={rootDir?.replace("/", "\\") ?? "-"} />
 								<div className=" w-80 flex justify-between">
 									<Button
 										className="w-32 mt-2"

@@ -46,12 +46,16 @@ async fn download_and_unzip(
     // Create HTTP client
     let client = Client::new();
     let save_path2 = save_path.to_owned();
+    println!("test2");
+
     // Send GET request
     let response = client
         .get(&download_url)
         .send()
         .await
         .map_err(|e| e.to_string())?;
+    println!("test3");
+
     let ext = response
         .url()
         .path_segments()
@@ -73,17 +77,18 @@ async fn download_and_unzip(
     } else {
         file_name
     };
+    println!("test4");
 
     // Get content length for progress
     let total_size = response
         .content_length()
         .ok_or("Failed to get content length")?;
-
+    println!("test5");
     // Prepare file path
     let file_path = Path::new(&save_path).join(&file_name);
+    println!("{}",  file_path.to_str().unwrap());
     // Create file to write
     let mut file = File::create(&file_path).map_err(|e| e.to_string())?;
-
     // Stream the response body
     let mut stream = response.bytes_stream();
     let mut downloaded: u64 = 0;
