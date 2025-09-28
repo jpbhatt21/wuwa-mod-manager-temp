@@ -97,7 +97,7 @@ function RightOnline() {
 					opacity: !item.loaded ? 0 : 1,
 				}}>
 				{
-					<div key={item._sName + "pix"} className="min-h-64 flex flex-col w-full gap-2 px-2">
+					<div key={item._sName + "pix"} className="min-h-64 flex flex-col w-full gap-2 px-2 my-2">
 						<Dialog>
 							<DialogTrigger asChild>
 								<div className="min-h-56 flex w-full h-56 gap-1 overflow-hidden border rounded-lg">{item._aPreviewMedia && item._aPreviewMedia._aImages && item._aPreviewMedia._aImages.length > 0 && item._aPreviewMedia._aImages.map((image: OnlineModImage, index: number) => <img className="object-contain min-w-full duration-200" src={image._sBaseUrl + "/" + image._sFile} alt={item._sName} style={{ marginLeft: index == 0 ? -20.25 * curPreview + "rem" : "" }} />)}</div>
@@ -122,7 +122,7 @@ function RightOnline() {
 									</Carousel> */}
 							</DialogContent>
 						</Dialog>
-						<div className="flex w-full h-2 gap-1 mt-0.5 items-center justify-center">
+						<div className="flex flex-wrap w-full min-h-2 h-2  gap-1 items-center justify-center">
 							{item._aPreviewMedia &&
 								item._aPreviewMedia._aImages &&
 								item._aPreviewMedia._aImages.length > 0 &&

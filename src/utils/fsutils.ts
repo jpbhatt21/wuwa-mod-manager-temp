@@ -1,14 +1,44 @@
 import { refreshAppIdAtom, localModListAtom, localPresetListAtom, settingsDataAtom, categoryListAtom, localDataAtom, consentOverlayDataAtom, progressOverlayDataAtom, modRootDirAtom, store, LocalMod, DirRestructureItem, LocalData, ModHotkey, Preset } from "@/utils/vars";
 import { readDir, readTextFile, writeTextFile, rename, exists, mkdir, remove, copyFile, DirEntry } from "@tauri-apps/plugin-fs";
 import { open } from "@tauri-apps/plugin-dialog";
-import sanitize from "sanitize-filename";
 import { IGNORE, RESTORE, UNCATEGORIZED } from "@/utils/init";
 let root = "";
 let completedFiles = 0;
 let totalFiles = 0;
 let canceled = false;
 let result = "Ok";
+const PRIORITY_KEYS = ["Alt", "Ctrl", "Shift", "Capslock", "Tab", "Up", "Down", "Left", "Right"];
+const PRIORITY_SET = new Set(PRIORITY_KEYS);
 
+/**
+ * Sorts an array of key strings, moving priority keys to the front
+ * in a specific order, and sorting the rest by length then alphabetically.
+ *
+ * @param {string[]} keys - The array of key strings to sort.
+ * @returns {string[]} The newly sorted array.
+ */
+export function keySort(keys: string[]): string[] {
+  // 1. Filter out all non-priority keys.
+  const regularKeys = keys.filter(key => !PRIORITY_SET.has(key));
+
+  // 2. Sort only the regular keys with an efficient comparator.
+  regularKeys.sort((a, b) => {
+    // Sort by length first (faster numeric comparison)
+    if (a.length !== b.length) {
+      return a.length - b.length;
+    }
+    // If lengths are equal, sort alphabetically
+    return a.localeCompare(b);
+  });
+
+  // 3. Get the priority keys that were actually in the input array,
+  // preserving the correct priority order.
+  const inputKeysSet = new Set(keys);
+  const presentPriorityKeys = PRIORITY_KEYS.filter(pKey => inputKeysSet.has(pKey));
+
+  // 4. Combine the ordered priority keys with the sorted regular keys.
+  return [...presentPriorityKeys, ...regularKeys];
+};
 function formatDateTime() {
 	const now = new Date();
 	const year = now.getFullYear();
@@ -156,13 +186,13 @@ async function countFilesInDir(path: string, messageBox: HTMLElement | null = nu
 		}
 	}
 }
-async function detectHotkeys(entries: LocalMod[], data: LocalData, src: string): Promise<[LocalMod[], ModHotkey[]]> {
+async function detectHotkeys(entries: any[], data: LocalData, src: string): Promise<[LocalMod[], ModHotkey[]]> {
 	let hotkeyData: ModHotkey[] = [];
 	for (let entry of entries) {
 		try {
 			if (data[entry.truePath]) {
 				for (let key of Object.keys(data[entry.truePath])) {
-					entry[key as "source" | "updatedAt" | "note"] = data[entry.truePath as keyof typeof data][key as "source" | "updatedAt" | "note"] as undefined;
+					entry[key as "source" | "updatedAt" | "note"] = data[entry.truePath as keyof typeof data][key as "source" | "updatedAt" | "note"] as any;
 				}
 			}
 			if (entry.name.endsWith(".ini")) {
@@ -217,6 +247,31 @@ async function restructureDir(entries: LocalMod[]) {
 		await mkdir(joinPath(root, IGNORE));
 	} catch (e) {
 		console.log("Ignore Folder already exists");
+	}
+	try {
+		const parentDir = root.split("\\").slice(0, -1).join("\\");
+		const iniPath = joinPath(parentDir, "d3dx.ini");
+		if (await exists(iniPath)) {
+			const iniContent = await readTextFile(iniPath);
+			const lines = iniContent.split('\n');
+			let modified = false;
+			
+			for (let i = 0; i < lines.length; i++) {
+				const line = lines[i].trim();
+				if (line.includes('check_foreground_window')) {
+					lines[i] = 'check_foreground_window = 0';
+					modified = true;
+					break;
+				}
+			}
+			
+			if (modified) {
+				await writeTextFile(iniPath, lines.join('\n'));
+				console.log("Updated check_foreground_window to 0 in d3dx.ini");
+			}
+		}
+	} catch (e) {
+		console.log("Error updating d3dx.ini:", e);
 	}
 	try {
 		await mkdir(joinPath(root, UNCATEGORIZED));
@@ -374,16 +429,27 @@ export function sanitizeFileName(
 
   return sanitized;
 }
+export function modRouteFromURL(url: string): string {
+	let modId = url?.split("mods/").pop()?.split("/")[0] || "";
+	return modId ? "Mod/" + modId : "";
+}
 export async function createModDownloadDir(cat: string, dir: string) {
 	if (!cat || !dir) return;
 	let path = root + "\\" + cat + "\\" + dir;
-	if (await exists(path)) return;
-	return mkdir(path, { recursive: true });
+	let altPath = root + "\\" + cat + "\\" + "DISABLED_" + dir;
+	if (await exists(path)) 
+		return
+		// await removeDirRecursive(path);
+	if (await exists(altPath))
+		return true
+	await mkdir(path, { recursive: true });
+	return false
+
 }
 export async function validateModDownload(path: string) {
 	try {
 		const entries = await readDir(path);
-		if (entries.length < 3) {
+		if (entries.length < 3) {	
 			let ini = false;
 			let dirs = [];
 			for (let entry of entries) {
@@ -537,7 +603,7 @@ export async function getDirResructurePlan() {
 	// 	from: entries,
 	// 	to: finalEntries,
 	// });
-	console.log(next);
+	// console.log(next);
 	store.set(consentOverlayDataAtom, {
 		title: "Confirm changes",
 		from: entries,

@@ -1,5 +1,6 @@
 import { Input } from "@/components/ui/input";
 import { renameMod } from "@/utils/fsutils";
+import { setChange } from "@/utils/hotreload";
 import { previewUri } from "@/utils/vars";
 import { File, Folder } from "lucide-react";
 function CardLocal({ root, item, wwmm, selectedItem, setSelectedItem, index, lastUpdated, settings }: any) {
@@ -17,6 +18,7 @@ function CardLocal({ root, item, wwmm, selectedItem, setSelectedItem, index, las
 				onMouseUp={(e) => {
 					if (e.button == settings.toggle) {
 						renameMod(item.path, item.enabled ? "DISABLED_" + item.name.replaceAll("DISABLED_", "") : item.name.replaceAll("DISABLED_", ""));
+						setChange();
 						e.preventDefault();
 					} else {
 						setSelectedItem(index);

@@ -86,6 +86,10 @@
     "core:resources:default",
     "core:menu:default",
     "core:tray:default",
+    "global-shortcut:allow-is-registered",
+    "global-shortcut:allow-register",
+    "global-shortcut:allow-unregister",
+    "global-shortcut:allow-unregister-all",
     "fs:default",
     "fs:read-all",
     "fs:write-all",
@@ -115,6 +119,12 @@
       "allow": [
         {
           "url": "https://files.gamebanana.com/*"
+        },
+        {
+          "url": "http://127.0.0.1:5000/*"
+        },
+        {
+          "url": "http://localhost:5000/*"
         }
       ],
       "deny": [

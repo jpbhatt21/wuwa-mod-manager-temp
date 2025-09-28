@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAtom, useAtomValue } from "jotai";
 import { setWindowType } from "@/utils/init";
-import { saveConfig } from "@/utils/fsutils";
+import { keySort, saveConfig } from "@/utils/fsutils";
+import { setHotreload } from "@/utils/hotreload";
 
 let keysdown: any = [];
 let keys: any = [];
@@ -16,7 +17,6 @@ let bg = document.querySelector("body");
 function Settings() {
 	const [presets, setPresets] = useAtom(localPresetListAtom);
 	const [settings, setSettings] = useAtom(settingsDataAtom);
-	
 	const leftSidebarOpen = useAtomValue(leftSidebarOpenAtom);
 
 	if (JSON.stringify(settings) == "{}") return <></>;
@@ -43,6 +43,7 @@ function Settings() {
 										prev.hotReload = e == "1";
 										return prev;
 									});
+									setHotreload(e == "1");
 									saveConfig();
 								}}>
 								<TabsList className="bg-background/50 w-full">
@@ -154,47 +155,77 @@ function Settings() {
 												}}
 												value={preset.name}></Input>
 											<Input
-												defaultValue={preset.hotkey.replaceAll("+", "xx+xx").replaceAll("comma", ",").replaceAll("space", " ").replaceAll("plus", "+").replaceAll("xx+xx", " ﹢ ")}
+												defaultValue={preset.hotkey.replaceAll("+", "xx+xx").replaceAll("comma", ",").replaceAll("space", "Space").replaceAll("plus", "+").replaceAll("minus", "-").replaceAll("multiply", "*").replaceAll("divide", "/").replaceAll("decimal", ".").replaceAll("enter", "↵").replaceAll("backquote", "`").replaceAll("backslash", "\\").replaceAll("bracketleft", "[").replaceAll("bracketright", "]").replaceAll("semicolon", ";").replaceAll("quote", "'").replaceAll("period", ".").replaceAll("slash", "/").replaceAll("equal", "=").replaceAll("xx+xx", " ﹢ ")}
 												autoFocus={false}
 												contentEditable={false}
 												onKeyDownCapture={(e) => {
 													e.preventDefault();
+													// console.log(e);
 													if (e.code == "Backspace") {
-														setPresets((prev) => {
-															prev[index].hotkey = "";
-															return prev;
-														});
+														e.currentTarget.value = "";
 														saveConfig();
+													}
+													if (e.code == "Escape") {
+														e.currentTarget.value = preset.hotkey.replaceAll("+", "xx+xx").replaceAll("comma", ",").replaceAll("space", "Space").replaceAll("plus", "+").replaceAll("minus", "-").replaceAll("multiply", "*").replaceAll("divide", "/").replaceAll("decimal", ".").replaceAll("enter", "↵").replaceAll("backquote", "`").replaceAll("backslash", "\\").replaceAll("bracketleft", "[").replaceAll("bracketright", "]").replaceAll("semicolon", ";").replaceAll("quote", "'").replaceAll("period", ".").replaceAll("slash", "/").replaceAll("equal", "=").replaceAll("xx+xx", " ﹢ ");
+														keysdown = [];
+														keys = [];
 													} else {
 														let next: any = [];
-														let key = e.key.toLowerCase().replaceAll("control", "ctrl").replaceAll("arrow", "");
+														let key = e.code
+															.toLowerCase()
+															// Remove prefixes
+															.replaceAll("key", "")
+															.replaceAll("digit", "")
+															.replaceAll("numpad", "")
+															// Handle special numpad keys
+															.replaceAll("plus", "+")
+															.replaceAll("minus", "-")
+															.replaceAll("multiply", "*")
+															.replaceAll("divide", "/")
+															.replaceAll("decimal", ".")
+															.replaceAll("enter", "↵")
+															// Handle modifier keys
+															.replaceAll("altright", "Alt")
+															.replaceAll("controlright", "Ctrl")
+															.replaceAll("shiftright", "Shift")
+															.replaceAll("altleft", "Alt")
+															.replaceAll("controlleft", "Ctrl")
+															.replaceAll("shiftleft", "Shift")
+															// Handle arrow keys
+															.replaceAll("arrow", "")
+															// Handle special keys
+															.replaceAll("backquote", "`")
+															.replaceAll("backslash", "\\")
+															.replaceAll("bracketleft", "[")
+															.replaceAll("bracketright", "]")
+															.replaceAll("semicolon", ";")
+															.replaceAll("quote", "'")
+															.replaceAll("comma", ",")
+															.replaceAll("period", ".")
+															.replaceAll("slash", "/")
+															.replaceAll("equal", "=")
+															.replaceAll("minus", "-")
+															// Handle function keys (keep as is but uppercase)
+															.replace(/^f(\d+)$/, "F$1")
+															// Handle space
+															.split("")
+															.map((x, i) => (i == 0 ? x.toUpperCase() : x))
+															.join("");
 														if (keys.includes(key)) {
 															next = keys;
 														} else {
-															if (!keysdown.includes(key)) {
-																keysdown.push(key);
+															if (!keysdown.includes(e.code)) {
+																keysdown.push(e.code);
 															}
 															keys.push(key);
-															const priority = ["alt", "ctrl", "shift", "caps", "tab", "up", "down", "left", "right"];
-															next = keys.sort((a: any, b: any) => {
-																return (a.length + a).toString().localeCompare((b.length + b).toString());
-															});
-
-															for (let i = priority.length - 1; i > -1; i--) {
-																let element = priority[i];
-																let index = next.indexOf(element);
-																if (index > -1) {
-																	next.splice(index, 1);
-																	next.unshift(element);
-																}
-															}
+															next = keySort(keys);
 														}
 
 														e.currentTarget.value = next.join(" ﹢ ");
 													}
 												}}
 												onKeyUpCapture={(e) => {
-													let key = e.key.toLowerCase().replaceAll("control", "ctrl").replaceAll("arrow", "");
+													let key = e.code;
 													let index = keysdown.indexOf(key);
 													if (index > -1) keysdown.splice(index, 1);
 													if (keysdown.length == 0) {
@@ -206,8 +237,8 @@ function Settings() {
 													keysdown = [];
 													keys = [];
 													setPresets((prev) => {
-														prev[index].hotkey = e.currentTarget.value.replaceAll(" ﹢ ", "xxplusxx").replaceAll(",", "comma").replaceAll(" ", "space").replaceAll("+", "plus").replaceAll("xxplusxx", "+");
-														return prev;
+														prev[index].hotkey = e.currentTarget.value.replaceAll(" ﹢ ", "xxplusxx").replaceAll(",", "comma").replaceAll("Space", "space").replaceAll("+", "plus").replaceAll("-", "minus").replaceAll("*", "multiply").replaceAll("/", "divide").replaceAll(".", "decimal").replaceAll("↵", "enter").replaceAll("`", "backquote").replaceAll("\\", "backslash").replaceAll("[", "bracketleft").replaceAll("]", "bracketright").replaceAll(";", "semicolon").replaceAll("'", "quote").replaceAll("=", "equal").replaceAll("xxplusxx", "+");
+														return [...prev];
 													});
 													saveConfig();
 												}}

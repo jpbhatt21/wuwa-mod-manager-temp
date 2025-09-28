@@ -1,6 +1,101 @@
 {
   "dir": "C:\\Users\\jatan\\AppData\\Roaming\\XXMI Launcher\\WWMI\\Mods",
-  "presets": [],
+  "presets": [
+    {
+      "name": "Preset1",
+      "data": [
+        "\\Augusta\\Augusta Warrior Princess",
+        "\\Ciaccona\\Astra Yao _ Ciaccona",
+        "\\UI\\DISABLED_Animated + Static Randomised Loading Screen mod",
+        "\\Cantarella\\DISABLED_CovenUmbrellaMod",
+        "\\Cantarella\\DISABLED_CovenCantarella",
+        "\\UI\\DISABLED_Clean_UI",
+        "\\Changli\\DISABLED_ChangliHecate",
+        "\\Cantarella\\DISABLED_CantyFixed_update",
+        "\\Cantarella\\DISABLED_Cantarella-suspender_sock_public_version",
+        "\\Cantarella\\DISABLED_Cantarella-fleurdelys-nsfw-toggle-fixed-v2-3",
+        "\\Camellya\\DISABLED_Camellya_Vampire",
+        "\\Camellya\\DISABLED_Camellya Rozen_nomakeup",
+        "\\Cantarella\\DISABLED_cantarella_dark_pv_design",
+        "\\Cantarella\\DISABLED_Date Night Cantarella NSFW",
+        "\\Cartethyia\\DISABLED_Elegant Qipao of Cartethyia and Fleurdelys",
+        "\\UI\\DISABLED_hideui_v23",
+        "\\Changli\\Hecate Changli",
+        "\\Iuno\\Iuno All toggles (Added more + HalfBra)",
+        "\\Jinhsi\\DISABLED_JinhsiSeasideVibes",
+        "\\Jinhsi\\DISABLED_jinxi-floral-dress-final-versions-toggle-wwmi-070",
+        "\\NPCs & Entities\\Lorelei_Uncensored",
+        "\\Camellya\\DISABLED_Lilith_Camellya_Legs_NO_HAT",
+        "\\Phoebe\\DISABLED_pheobe",
+        "\\Phoebe\\DISABLED_Phoebe_Margherita_To_Phoebe",
+        "\\Rover Female\\DISABLED_Rover",
+        "\\UI\\DISABLED_RemoveGourd",
+        "\\UI\\Remove Gourd (WWMI)",
+        "\\UI\\DISABLED_RabbitFX",
+        "\\UI\\DISABLED_SplashArt_Feet_SFW",
+        "\\UI\\DISABLED_Splash_peeing_for_team_ui_23_ba_c579d",
+        "\\UI\\DISABLED_Splash_Custom_Art_Offical_ver_2.3",
+        "\\NPCs & Entities\\DISABLED_SK_mini",
+        "\\Cartethyia\\Simple Cartethyia",
+        "\\Shorekeeper\\DISABLED_Shorekeeper_AchekeeperV3",
+        "\\Sanhua\\Sanhua_Cloak_-_longer",
+        "\\UI\\DISABLED_TransparencyFix",
+        "\\Danjin\\Topaz replace Danjin",
+        "\\Zani\\DISABLED_ZaniBadGirlMod",
+        "\\Zani\\DISABLED_Zani_-_Talos",
+        "\\Zani\\DISABLED_zani_sexier",
+        "\\Zani\\DISABLED_zani_black_silk_transparent_hip_wrapping_skirt_public_edition_1bac7"
+      ],
+      "hotkey": "Alt+Shift+1"
+    },
+    {
+      "name": "Preset2",
+      "data": [
+        "\\Augusta\\Augusta Warrior Princess",
+        "\\Ciaccona\\Astra Yao _ Ciaccona",
+        "\\UI\\Animated + Static Randomised Loading Screen mod",
+        "\\Cantarella\\CovenUmbrellaMod",
+        "\\Cantarella\\DISABLED_CovenCantarella",
+        "\\UI\\DISABLED_Clean_UI",
+        "\\Changli\\DISABLED_ChangliHecate",
+        "\\Cantarella\\DISABLED_CantyFixed_update",
+        "\\Cantarella\\DISABLED_Cantarella-suspender_sock_public_version",
+        "\\Cantarella\\DISABLED_Cantarella-fleurdelys-nsfw-toggle-fixed-v2-3",
+        "\\Camellya\\DISABLED_Camellya_Vampire",
+        "\\Camellya\\DISABLED_Camellya Rozen_nomakeup",
+        "\\Cantarella\\DISABLED_cantarella_dark_pv_design",
+        "\\Cantarella\\DISABLED_Date Night Cantarella NSFW",
+        "\\Cartethyia\\DISABLED_Elegant Qipao of Cartethyia and Fleurdelys",
+        "\\UI\\DISABLED_hideui_v23",
+        "\\Changli\\Hecate Changli",
+        "\\Iuno\\Iuno All toggles (Added more + HalfBra)",
+        "\\Jinhsi\\DISABLED_JinhsiSeasideVibes",
+        "\\Jinhsi\\DISABLED_jinxi-floral-dress-final-versions-toggle-wwmi-070",
+        "\\NPCs & Entities\\Lorelei_Uncensored",
+        "\\Camellya\\DISABLED_Lilith_Camellya_Legs_NO_HAT",
+        "\\Phoebe\\DISABLED_pheobe",
+        "\\Phoebe\\DISABLED_Phoebe_Margherita_To_Phoebe",
+        "\\Rover Female\\DISABLED_Rover",
+        "\\UI\\DISABLED_RemoveGourd",
+        "\\UI\\Remove Gourd (WWMI)",
+        "\\UI\\DISABLED_RabbitFX",
+        "\\UI\\DISABLED_SplashArt_Feet_SFW",
+        "\\UI\\DISABLED_Splash_peeing_for_team_ui_23_ba_c579d",
+        "\\UI\\DISABLED_Splash_Custom_Art_Offical_ver_2.3",
+        "\\NPCs & Entities\\DISABLED_SK_mini",
+        "\\Cartethyia\\Simple Cartethyia",
+        "\\Shorekeeper\\DISABLED_Shorekeeper_AchekeeperV3",
+        "\\Sanhua\\Sanhua_Cloak_-_longer",
+        "\\UI\\DISABLED_TransparencyFix",
+        "\\Danjin\\Topaz replace Danjin",
+        "\\Zani\\DISABLED_ZaniBadGirlMod",
+        "\\Zani\\DISABLED_Zani_-_Talos",
+        "\\Zani\\DISABLED_zani_sexier",
+        "\\Zani\\DISABLED_zani_black_silk_transparent_hip_wrapping_skirt_public_edition_1bac7"
+      ],
+      "hotkey": "Alt+Shift+2"
+    }
+  ],
   "settings": {
     "hotKeys": {
       "ctrl+9": {
@@ -16,7 +111,208 @@
     "type": 0,
     "listType": 0
   },
-  "data": {},
+  "data": {
+    "\\Ciaccona\\Astra Yao _ Ciaccona": {
+      "source": "https://gamebanana.com/mods/621904",
+      "updatedAt": 1758526148000,
+      "updateAvailable": false
+    },
+    "\\Cartethyia\\Simple Cartethyia": {
+      "source": "https://gamebanana.com/mods/620241",
+      "updatedAt": 1757892543000,
+      "updateAvailable": false
+    },
+    "\\Cartethyia\\Elegant Qipao of Cartethyia and Fleurdelys": {
+      "source": "https://gamebanana.com/mods/612937",
+      "updatedAt": 1755417749000,
+      "updateAvailable": true
+    },
+    "\\Iuno\\Iuno All toggles (Added more + HalfBra)": {
+      "source": "https://gamebanana.com/mods/620811",
+      "updatedAt": 1758908353000,
+      "updateAvailable": false
+    },
+    "\\Augusta\\Augusta Warrior Princess": {
+      "source": "https://gamebanana.com/mods/622249",
+      "updatedAt": 1758932414000,
+      "updateAvailable": true
+    },
+    "\\Camellya\\Camellya_Vampire": {
+      "source": "https://gamebanana.com/mods/560476",
+      "updatedAt": 1733428567000,
+      "updateAvailable": true
+    },
+    "\\Camellya\\Camellya Rozen_nomakeup": {
+      "source": "https://gamebanana.com/mods/555933",
+      "updatedAt": 1758971883094,
+      "updateAvailable": false
+    },
+    "\\Changli\\ChangliHecate": {
+      "source": "https://gamebanana.com/mods/582144",
+      "updatedAt": 1758972535670,
+      "updateAvailable": false
+    },
+    "\\Camellya\\Lilith_Camellya_Legs_NO_HAT": {
+      "source": "https://gamebanana.com/mods/567250",
+      "updatedAt": 1758972086832,
+      "updateAvailable": false
+    },
+    "\\Cantarella\\CovenCantarella": {
+      "source": "https://gamebanana.com/mods/585256",
+      "updatedAt": 1758972132265,
+      "updateAvailable": false
+    },
+    "\\Cantarella\\CovenUmbrellaMod": {
+      "source": "https://gamebanana.com/mods/585256",
+      "updatedAt": 1758972133586,
+      "updateAvailable": false
+    },
+    "\\Danjin\\Topaz replace Danjin": {
+      "source": "https://gamebanana.com/mods/622621",
+      "updatedAt": 1758807938000,
+      "updateAvailable": false
+    },
+    "\\Cantarella\\CantyFixed_update": {
+      "source": "https://gamebanana.com/mods/587391",
+      "updatedAt": 1746036356000,
+      "updateAvailable": false
+    },
+    "\\Cantarella\\Cantarella-suspender_sock_public_version": {
+      "source": "https://gamebanana.com/mods/584909",
+      "updatedAt": 1737626186000,
+      "updateAvailable": true
+    },
+    "\\Cantarella\\Cantarella-fleurdelys-nsfw-toggle-fixed-v2-3": {
+      "source": "https://gamebanana.com/mods/585595",
+      "updatedAt": 1758972456610,
+      "updateAvailable": false
+    },
+    "\\Cantarella\\cantarella_dark_pv_design": {
+      "source": "https://gamebanana.com/mods/590128",
+      "updatedAt": 1758972467496,
+      "updateAvailable": false
+    },
+    "\\Cantarella\\Date Night Cantarella NSFW": {
+      "source": "https://gamebanana.com/mods/586235",
+      "updatedAt": 1758972473864,
+      "updateAvailable": false
+    },
+    "\\Jinhsi\\JinhsiSeasideVibes": {
+      "source": "https://gamebanana.com/mods/538928",
+      "updatedAt": 1758972560269,
+      "updateAvailable": false
+    },
+    "\\Jinhsi\\jinxi-floral-dress-final-versions-toggle-wwmi-070": {
+      "source": "https://gamebanana.com/mods/526853",
+      "updatedAt": 1758972591311,
+      "updateAvailable": false
+    },
+    "\\Phoebe\\pheobe": {
+      "source": "https://gamebanana.com/mods/577145",
+      "updatedAt": 1758972636788,
+      "updateAvailable": false
+    },
+    "\\Phoebe\\Phoebe_Margherita_To_Phoebe": {
+      "source": "https://gamebanana.com/mods/583512",
+      "updatedAt": 1758972713557,
+      "updateAvailable": false
+    },
+    "\\Rover Female\\Rover": {
+      "source": "https://gamebanana.com/mods/570734",
+      "updatedAt": 1758972746392,
+      "updateAvailable": false
+    },
+    "\\Sanhua\\Sanhua_Cloak_-_longer": {
+      "source": "https://gamebanana.com/mods/566035",
+      "updatedAt": 1758932414000,
+      "updateAvailable": false
+    },
+    "\\Shorekeeper\\Shorekeeper_AchekeeperV3": {
+      "source": "https://gamebanana.com/mods/545511",
+      "updatedAt": 1758972883625,
+      "updateAvailable": false
+    },
+    "\\Zani\\zani_sexier": {
+      "source": "https://gamebanana.com/mods/591442",
+      "updatedAt": 1758972971301,
+      "updateAvailable": false
+    },
+    "\\Zani\\zani_black_silk_transparent_hip_wrapping_skirt_public_edition_1bac7": {
+      "source": "https://gamebanana.com/mods/591610",
+      "updatedAt": 1758972996268,
+      "updateAvailable": false
+    },
+    "\\Zani\\ZaniBadGirlMod": {
+      "source": "https://gamebanana.com/mods/592350",
+      "updatedAt": 1758973028745,
+      "updateAvailable": false
+    },
+    "\\Zani\\Zani_-_Talos": {
+      "source": "https://gamebanana.com/mods/592726",
+      "updatedAt": 1758973045710,
+      "updateAvailable": false
+    },
+    "\\NPCs & Entities\\Lorelei_Uncensored": {
+      "source": "https://gamebanana.com/mods/570724",
+      "updatedAt": 1737626186000,
+      "updateAvailable": false
+    },
+    "\\UI\\Clean_UI": {
+      "source": "https://gamebanana.com/mods/525176",
+      "updatedAt": 1758973925374,
+      "updateAvailable": false
+    },
+    "\\UI\\HideHulu.ini": {
+      "source": "https://gamebanana.com/mods/530235",
+      "updatedAt": 1758973935982,
+      "updateAvailable": false
+    },
+    "\\UI\\RemoveGourd": {
+      "source": "https://gamebanana.com/mods/530235",
+      "updatedAt": 1758974002911,
+      "updateAvailable": false
+    },
+    "\\UI\\hideui_v23": {
+      "source": "https://gamebanana.com/mods/535644",
+      "updatedAt": 1758974020791,
+      "updateAvailable": false
+    },
+    "\\UI\\RabbitFX": {
+      "source": "https://gamebanana.com/mods/527815",
+      "updatedAt": 1758974038325,
+      "updateAvailable": false
+    },
+    "\\UI\\SplashArt_Feet_SFW": {
+      "source": "https://gamebanana.com/mods/591707",
+      "updatedAt": 1752588850000,
+      "updateAvailable": false
+    },
+    "\\UI\\Splash_peeing_for_team_ui_23_ba_c579d": {
+      "source": "https://gamebanana.com/mods/568492",
+      "updatedAt": 1758129025000,
+      "updateAvailable": false
+    },
+    "\\UI\\Splash_Custom_Art_Offical_ver_2.3": {
+      "source": "https://gamebanana.com/mods/584895",
+      "updatedAt": 1758974164945,
+      "updateAvailable": false
+    },
+    "\\UI\\Remove Gourd (WWMI)": {
+      "source": "https://gamebanana.com/mods/530235",
+      "updatedAt": 1756911348000,
+      "updateAvailable": false
+    },
+    "\\UI\\DISABLED_Splash_Custom_Art_Offical_ver_2.3": {
+      "source": "https://gamebanana.com/mods/584895",
+      "updatedAt": 1758890115000,
+      "updateAvailable": false
+    },
+    "\\UI\\Animated + Static Randomised Loading Screen mod": {
+      "source": "https://gamebanana.com/mods/575376",
+      "updatedAt": 1758966870000,
+      "updateAvailable": true
+    }
+  },
   "version": "1.0.0",
-  "savedAt": 1758955313245
+  "savedAt": 1759058723132
 }

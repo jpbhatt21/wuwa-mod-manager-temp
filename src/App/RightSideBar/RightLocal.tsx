@@ -1,13 +1,13 @@
-import { categoryListAtom, refreshAppIdAtom, localFilteredModListAtom, localSelectedModAtom, previewUri, modRootDirAtom, onlineModeAtom, localDataAtom, LocalMod } from "@/utils/vars";
+import { categoryListAtom, refreshAppIdAtom, localFilteredModListAtom, localSelectedModAtom, previewUri, modRootDirAtom, onlineModeAtom, localDataAtom, LocalMod, onlineSelectedItemAtom } from "@/utils/vars";
 import { ArrowUpRightFromSquareIcon, Check, ChevronDown, CircleSlash, Edit, File, Folder, Link } from "lucide-react";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { renameMod, saveConfig, savePreviewImage } from "@/utils/fsutils";
+import { modRouteFromURL, renameMod, saveConfig, savePreviewImage } from "@/utils/fsutils";
 import { SidebarGroup } from "@/components/ui/sidebar";
 import { openPath } from "@tauri-apps/plugin-opener";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useAtom, useAtomValue } from "jotai";
+import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import wwmm from "@/wwmm.png";
@@ -17,8 +17,9 @@ function RightLocal() {
 	const localSelectedItem = useAtomValue(localSelectedModAtom);
 	const lastUpdated = useAtomValue(refreshAppIdAtom);
 	const categories = useAtomValue(categoryListAtom);
-	const online = useAtomValue(onlineModeAtom);
+	const [online,setOnline] = useAtom(onlineModeAtom);
 	const root = useAtomValue(modRootDirAtom);
+	const setOnlineSelectedItem = useSetAtom(onlineSelectedItemAtom);
 
 	const [localData, setLocalData] = useAtom(localDataAtom);
 
@@ -214,9 +215,21 @@ function RightLocal() {
 								key={localData[item.truePath]?.source}
 								defaultValue={localData[item.truePath]?.source}
 							/>
-							<a href={localData[item.truePath]?.source} target="_blank" className="bg-pat2 hover:brightness-150 p-2 duration-200 rounded-lg">
+							<div className="bg-pat2 hover:brightness-150 p-2 duration-200 rounded-lg" onClick={() => {
+								if (localData[item.truePath]?.source && localData[item.truePath]?.source != ""){
+									let modRoute=modRouteFromURL(localData[item.truePath].source||"");
+									if (modRoute)
+									{	setOnline(true);
+										setOnlineSelectedItem(modRoute);
+									}
+								}
+
+							}}>
 								<Link className=" w-4 h-4" />
-							</a>
+							</div>
+							{/* <a href={localData[item.truePath]?.source} target="_blank" className="bg-pat2 hover:brightness-150 p-2 duration-200 rounded-lg">
+								<Link className=" w-4 h-4" />
+							</a> */}
 						</div>
 					</div>
 					<div className="bg-pat2 flex justify-between w-full p-1 rounded-lg">

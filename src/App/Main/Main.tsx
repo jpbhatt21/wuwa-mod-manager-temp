@@ -1,4 +1,4 @@
-import { localModListAtom, localCategoryNameAtom, localFilterNameAtom, localFilteredModListAtom, onlinePathAtom, apiRoutes, onlineDataAtom } from "@/utils/vars";
+import { localModListAtom, localCategoryNameAtom, localFilterNameAtom, localFilteredModListAtom, onlinePathAtom, apiRoutes, onlineDataAtom, onlineSelectedItemAtom } from "@/utils/vars";
 import { MouseEvent, UIEvent, useEffect } from "react";
 import { useAtomValue, useSetAtom } from "jotai";
 import Catbar from "./components/Catbar";
@@ -15,7 +15,7 @@ function Main({ leftSidebarOpen, setLeftSidebarOpen, rightSidebarOpen, setRightS
 	const localFilter = useAtomValue(localFilterNameAtom);
 	const localItems = useAtomValue(localModListAtom);
 	const onlinePath = useAtomValue(onlinePathAtom);
-
+	const onlineSelectedItem = useAtomValue(onlineSelectedItemAtom);
 	const setLocalFilteredItems = useSetAtom(localFilteredModListAtom);
 	const setOnlineData = useSetAtom(onlineDataAtom);
 
@@ -73,7 +73,7 @@ function Main({ leftSidebarOpen, setLeftSidebarOpen, rightSidebarOpen, setRightS
 				fetch(apiRoutes.banner(), { signal: controller.signal })
 					.then((res) => res.json())
 					.then((data) => {
-						console.log("banner", data);
+						// console.log("banner", data);
 						setOnlineData((prev) => {
 							return {
 								...prev,
@@ -84,7 +84,7 @@ function Main({ leftSidebarOpen, setLeftSidebarOpen, rightSidebarOpen, setRightS
 				fetch(apiRoutes.home(), { signal: controller.signal })
 					.then((res) => res.json())
 					.then((data) => {
-						console.log("home", data);
+						// console.log("home", data);
 						max = data._aMetadata._nRecordCount / 15;
 						setOnlineData((prev) => {
 							return {
@@ -116,7 +116,7 @@ function Main({ leftSidebarOpen, setLeftSidebarOpen, rightSidebarOpen, setRightS
 		};
 	}, [online, onlinePath]);
 	useEffect(() => {
-		if (online) {
+		if (online && onlineSelectedItem=="-1") {
 			setRightSidebarOpen(false);
 		}
 	}, [online]);

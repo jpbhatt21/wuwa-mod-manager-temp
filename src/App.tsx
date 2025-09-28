@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo } from "react";
 import "./App.css";
 import { SidebarProvider } from "./components/ui/sidebar";
 import LeftSidebar from "./App/LeftSideBar/Left";
@@ -11,18 +11,31 @@ import { AnimatePresence } from "motion/react";
 import Intro from "./App/Intro/Intro";
 import Consent from "./App/Consent/Consent";
 import Progress from "./App/Progress/Progress";
+
+// Initialize app outside component to avoid re-initialization
 main();
+
 function App() {
 	const online = useAtomValue(onlineModeAtom);
 	const firstLoad = useAtomValue(firstLoadAtom);
 	const restoreInfo = useAtomValue(progressOverlayDataAtom);
 	const plannedChanges = useAtomValue(consentOverlayDataAtom);
 	const [tutorial, setTutorial] = useAtom(tutorialOpenAtom);
-	const [leftSidebarOpen, setLeftSidebarOpen] = useAtom(leftSidebarOpenAtom)
-	const [rightSidebarOpen, setRightSidebarOpen] = useAtom(rightSidebarOpenAtom)
+	const [leftSidebarOpen, setLeftSidebarOpen] = useAtom(leftSidebarOpenAtom);
+	const [rightSidebarOpen, setRightSidebarOpen] = useAtom(rightSidebarOpenAtom);
+	
+	// Memoize style calculations to avoid recalculating on every render
+	const leftSidebarStyle = useMemo(() => ({
+		minWidth: leftSidebarOpen ? "20.95rem" : "3.95rem",
+	}), [leftSidebarOpen]);
+	
+	const rightSidebarStyle = useMemo(() => ({
+		minWidth: rightSidebarOpen ? "20.95rem" : "0rem",
+	}), [rightSidebarOpen]);
+	
 	useEffect(() => {
 		if (firstLoad) setTutorial(true);
-	}, [firstLoad]);
+	}, [firstLoad, setTutorial]);
 	return (
 		<div id="background" className="flex flex-row fixed justify-start items-start w-full h-full wuwa-ft">
 			<SidebarProvider open={leftSidebarOpen}>
@@ -34,16 +47,12 @@ function App() {
 			<div className="w-full h-full fixed flex flex-row">
 				<div
 					className="h-full duration-200 ease-linear"
-					style={{
-						minWidth: leftSidebarOpen ? "20.95rem" : "3.95rem",
-					}}
+					style={leftSidebarStyle}
 				/>
 				<Main {...{ leftSidebarOpen, setLeftSidebarOpen, rightSidebarOpen, setRightSidebarOpen, online }} />
 				<div
 					className="h-full duration-200 ease-linear"
-					style={{
-						minWidth: rightSidebarOpen ? "20.95rem" : "0rem",
-					}}
+					style={rightSidebarStyle}
 				/>
 			</div>
 			<AnimatePresence>{tutorial && <Intro />}</AnimatePresence>
