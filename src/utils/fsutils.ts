@@ -1,7 +1,9 @@
-import { refreshAppIdAtom, localModListAtom, localPresetListAtom, settingsDataAtom, categoryListAtom, localDataAtom, consentOverlayDataAtom, progressOverlayDataAtom, modRootDirAtom, store, LocalMod, DirRestructureItem, LocalData, ModHotkey, Preset } from "@/utils/vars";
+import { refreshAppIdAtom, localModListAtom, localPresetListAtom, settingsDataAtom, categoryListAtom, localDataAtom, consentOverlayDataAtom, progressOverlayDataAtom, modRootDirAtom, store } from "@/utils/vars";
 import { readDir, readTextFile, writeTextFile, rename, exists, mkdir, remove, copyFile, DirEntry } from "@tauri-apps/plugin-fs";
 import { open } from "@tauri-apps/plugin-dialog";
 import { IGNORE, RESTORE, UNCATEGORIZED } from "@/utils/init";
+import { VERSION } from "./consts";
+import { SanitizeOptions, LocalMod, DirRestructureItem, LocalData, ModHotkey, Preset, Settings } from "./types";
 let root = "";
 let completedFiles = 0;
 let totalFiles = 0;
@@ -9,36 +11,25 @@ let canceled = false;
 let result = "Ok";
 const PRIORITY_KEYS = ["Alt", "Ctrl", "Shift", "Capslock", "Tab", "Up", "Down", "Left", "Right"];
 const PRIORITY_SET = new Set(PRIORITY_KEYS);
-
-/**
- * Sorts an array of key strings, moving priority keys to the front
- * in a specific order, and sorting the rest by length then alphabetically.
- *
- * @param {string[]} keys - The array of key strings to sort.
- * @returns {string[]} The newly sorted array.
- */
 export function keySort(keys: string[]): string[] {
-  // 1. Filter out all non-priority keys.
-  const regularKeys = keys.filter(key => !PRIORITY_SET.has(key));
-
-  // 2. Sort only the regular keys with an efficient comparator.
-  regularKeys.sort((a, b) => {
-    // Sort by length first (faster numeric comparison)
-    if (a.length !== b.length) {
-      return a.length - b.length;
-    }
-    // If lengths are equal, sort alphabetically
-    return a.localeCompare(b);
-  });
-
-  // 3. Get the priority keys that were actually in the input array,
-  // preserving the correct priority order.
-  const inputKeysSet = new Set(keys);
-  const presentPriorityKeys = PRIORITY_KEYS.filter(pKey => inputKeysSet.has(pKey));
-
-  // 4. Combine the ordered priority keys with the sorted regular keys.
-  return [...presentPriorityKeys, ...regularKeys];
-};
+	
+	const regularKeys = keys.filter((key) => !PRIORITY_SET.has(key));
+	
+	regularKeys.sort((a, b) => {
+		
+		if (a.length !== b.length) {
+			return a.length - b.length;
+		}
+		
+		return a.localeCompare(b);
+	});
+	
+	
+	const inputKeysSet = new Set(keys);
+	const presentPriorityKeys = PRIORITY_KEYS.filter((pKey) => inputKeysSet.has(pKey));
+	
+	return [...presentPriorityKeys, ...regularKeys];
+}
 function formatDateTime() {
 	const now = new Date();
 	const year = now.getFullYear();
@@ -112,7 +103,6 @@ async function copyDir(src: string, dest: string) {
 		for (const entry of entries) {
 			const srcPath = `${src}/${entry.name}`;
 			const destPath = `${dest}/${entry.name}`;
-
 			if (!entry.isDirectory) {
 				await copyFile(srcPath, destPath);
 			} else {
@@ -236,6 +226,31 @@ async function detectHotkeys(entries: any[], data: LocalData, src: string): Prom
 	}
 	return [entries, hotkeyData];
 }
+export async function updateIni(num: 0 | 1) {
+	try {
+		const parentDir = root.split("\\").slice(0, -1).join("\\");
+		const iniPath = joinPath(parentDir, "d3dx.ini");
+		if (await exists(iniPath)) {
+			const iniContent = await readTextFile(iniPath);
+			const lines = iniContent.split("\n");
+			let modified = false;
+			for (let i = 0; i < lines.length; i++) {
+				const line = lines[i].trim();
+				if (line.includes("check_foreground_window")) {
+					lines[i] = `check_foreground_window = ${num}`;
+					modified = true;
+					break;
+				}
+			}
+			if (modified) {
+				await writeTextFile(iniPath, lines.join("\n"));
+				console.log(`Updated check_foreground_window to ${num} in d3dx.ini`);
+			}
+		}
+	} catch (e) {
+		console.log("Error updating d3dx.ini:", e);
+	}
+}
 async function restructureDir(entries: LocalMod[]) {
 	let categories = store.get(categoryListAtom) || [];
 	try {
@@ -247,31 +262,6 @@ async function restructureDir(entries: LocalMod[]) {
 		await mkdir(joinPath(root, IGNORE));
 	} catch (e) {
 		console.log("Ignore Folder already exists");
-	}
-	try {
-		const parentDir = root.split("\\").slice(0, -1).join("\\");
-		const iniPath = joinPath(parentDir, "d3dx.ini");
-		if (await exists(iniPath)) {
-			const iniContent = await readTextFile(iniPath);
-			const lines = iniContent.split('\n');
-			let modified = false;
-			
-			for (let i = 0; i < lines.length; i++) {
-				const line = lines[i].trim();
-				if (line.includes('check_foreground_window')) {
-					lines[i] = 'check_foreground_window = 0';
-					modified = true;
-					break;
-				}
-			}
-			
-			if (modified) {
-				await writeTextFile(iniPath, lines.join('\n'));
-				console.log("Updated check_foreground_window to 0 in d3dx.ini");
-			}
-		}
-	} catch (e) {
-		console.log("Error updating d3dx.ini:", e);
 	}
 	try {
 		await mkdir(joinPath(root, UNCATEGORIZED));
@@ -287,12 +277,10 @@ async function restructureDir(entries: LocalMod[]) {
 				try {
 					await mkdir(joinPath(root, category._sName));
 				} catch (e) {}
-				if(await exists(joinPath(root, category._sName, entry.name))) {
+				if (await exists(joinPath(root, category._sName, entry.name))) {
 					alert("A folder with the name " + entry.name + " already exists in the category " + category._sName + ". Please rename or remove it before restructuring.");
-					
 				}
 				await rename(joinPath(root, entry.path), joinPath(root, category._sName, entry.name));
-				
 				break;
 			}
 		}
@@ -300,7 +288,7 @@ async function restructureDir(entries: LocalMod[]) {
 			try {
 				await mkdir(joinPath(root, UNCATEGORIZED));
 			} catch (e) {
-				//console.log("Folder already exists", e);
+				
 			}
 			try {
 				let suffix = "";
@@ -314,120 +302,65 @@ async function restructureDir(entries: LocalMod[]) {
 					}
 				}
 			} catch (e) {
-				//console.log("Folder already exists", e);
+				
 			}
 		}
 	}
 }
-
-export function setRoot(val: string) {
+export function setRoot(val: string, check = false) {
 	root = val;
+	if (check) {
+		getDirResructurePlan();
+	}
 }
 export function cancelRestore() {
 	canceled = true;
 }
+export async function selectPath({multiple=false,directory=false}:{multiple?:boolean,directory?:boolean}={}) {
+	return await open({
+		multiple,
+		directory,
+	})
+}
 export async function selectRootDir() {
-	const file = await open({
-		multiple: false,
-		directory: true,
-	});
+	const file = await selectPath({ directory: true });
 	if (!file) return;
 	store.set(modRootDirAtom, file);
-	setRoot(file);
-	getDirResructurePlan();
-	// store.set(localModListAtom, await readDirRecr(""));
-	// saveConfig();
+	setRoot(file, true);
+	
+	
 }
-/**
- * A list of reserved file names in Windows.
- * These are checked case-insensitively.
- * See: https://docs.microsoft.com/en-us/windows/win32/fileio/naming-a-file
- */
 const reservedWindowsNames = /^(con|prn|aux|nul|com\d|lpt\d)$/i;
-
-/**
- * A regex to match characters that are illegal in file names across
- * Windows, macOS, and Linux. This includes control characters (0-31).
- */
 const illegalCharacters = /[<>:"/\\|?*\x00-\x1F]/g;
 
-/**
- * Options for the sanitizeFileName function.
- */
-interface SanitizeOptions {
-  /**
-   * The character to use for replacing illegal characters.
-   * @default '_'
-   */
-  replacement?: string;
-  /**
-   * The name to return if the sanitized result is an empty string.
-   * @default 'untitled'
-   */
-  defaultName?: string;
-  /**
-   * The maximum length for the sanitized file name.
-   * @default 255
-   */
-  maxLength?: number;
-}
-
-/**
- * Sanitizes a string to be used as a safe file or directory name.
- *
- * This function performs the following actions:
- * - Replaces characters that are illegal in Windows, macOS, and Linux file names.
- * - Removes leading and trailing whitespace and dots.
- * - Prepends an underscore to reserved Windows filenames (CON, PRN, AUX, etc.).
- * - Truncates the name to a specified maximum length.
- * - Returns a default name if the sanitization results in an empty string.
- *
- * @param input The string to sanitize.
- * @param options Optional configuration for the sanitization process.
- * @returns A sanitized string safe for use as a file or directory name.
- */
-export function sanitizeFileName(
-  input: string,
-  options: SanitizeOptions = {}
-): string {
-  // 1. Set default options
-  const {
-    replacement = '_',
-    defaultName = 'untitled',
-    maxLength = 255,
-  } = options;
-
-  // Ensure input is a string, return default if not
-  if (typeof input !== 'string') {
-    return defaultName;
-  }
-
-  // 2. Replace illegal characters with the replacement string.
-  let sanitized = input.replace(illegalCharacters, replacement);
-
-  // 3. Handle reserved Windows names by prepending the replacement character.
-  // We check the base name (before any extension).
-  const baseName = sanitized.split('.')[0];
-  if (reservedWindowsNames.test(baseName)) {
-    sanitized = replacement + sanitized;
-  }
-
-  // 4. Remove leading/trailing whitespace and dots.
-  sanitized = sanitized.trim().replace(/^[.]+|[.]+$/g, '');
-
-  // 5. Truncate the string to the maximum allowed length.
-  if (sanitized.length > maxLength) {
-    sanitized = sanitized.substring(0, maxLength);
-    // Re-trim in case we cut in the middle of a trailing dot or space sequence
-    sanitized = sanitized.trim().replace(/^[.]+|[.]+$/g, '');
-  }
-
-  // 6. If the resulting string is empty, return the default name.
-  if (sanitized.length === 0) {
-    return defaultName;
-  }
-
-  return sanitized;
+export function sanitizeFileName(input: string, options: SanitizeOptions = {}): string {
+	
+	const { replacement = "_", defaultName = "untitled", maxLength = 255 } = options;
+	
+	if (typeof input !== "string") {
+		return defaultName;
+	}
+	
+	let sanitized = input.replace(illegalCharacters, replacement);
+	
+	
+	const baseName = sanitized.split(".")[0];
+	if (reservedWindowsNames.test(baseName)) {
+		sanitized = replacement + sanitized;
+	}
+	
+	sanitized = sanitized.trim().replace(/^[.]+|[.]+$/g, "");
+	
+	if (sanitized.length > maxLength) {
+		sanitized = sanitized.substring(0, maxLength);
+		
+		sanitized = sanitized.trim().replace(/^[.]+|[.]+$/g, "");
+	}
+	
+	if (sanitized.length === 0) {
+		return defaultName;
+	}
+	return sanitized;
 }
 export function modRouteFromURL(url: string): string {
 	let modId = url?.split("mods/").pop()?.split("/")[0] || "";
@@ -437,19 +370,16 @@ export async function createModDownloadDir(cat: string, dir: string) {
 	if (!cat || !dir) return;
 	let path = root + "\\" + cat + "\\" + dir;
 	let altPath = root + "\\" + cat + "\\" + "DISABLED_" + dir;
-	if (await exists(path)) 
-		return
-		// await removeDirRecursive(path);
-	if (await exists(altPath))
-		return true
+	if (await exists(path)) return;
+	
+	if (await exists(altPath)) return true;
 	await mkdir(path, { recursive: true });
-	return false
-
+	return false;
 }
 export async function validateModDownload(path: string) {
 	try {
 		const entries = await readDir(path);
-		if (entries.length < 3) {	
+		if (entries.length < 3) {
 			let ini = false;
 			let dirs = [];
 			for (let entry of entries) {
@@ -479,16 +409,46 @@ export async function refreshRootDir(dir = "") {
 			: entries;
 	return entries;
 }
-export function saveConfig() {
-	const config = {
+export function getConfig() {
+	return {
+		version: VERSION,
 		dir: root,
-		presets: store.get(localPresetListAtom) || [],
 		settings: store.get(settingsDataAtom) || {},
 		data: store.get(localDataAtom) || {},
-		version: "1.0.0",
+		presets: store.get(localPresetListAtom) || [],
 		savedAt: Date.now(),
 	};
+}
+export function saveConfig() {
+	const config = getConfig();
 	writeTextFile("config.json", JSON.stringify(config, null, 2));
+}
+
+interface ConfigStructure {
+	version: string;
+	dir: string;
+	settings: Settings;
+	data: LocalData;
+	presets: Preset[];
+}
+
+export async function checkConfigValidity(config: unknown): Promise<ConfigStructure | null> {
+	const cfg = config as Record<string, unknown>;
+	
+	if (!cfg.version || cfg.version > VERSION || !cfg.dir || typeof cfg.dir !== "string" || !cfg.settings || typeof cfg.settings !== "object" || !cfg.data || typeof cfg.data !== "object" || !cfg.presets || !Array.isArray(cfg.presets)) {
+		return null;
+	}
+	return config as ConfigStructure;
+}
+export async function deleteMod(path: string, isDir: boolean) {
+	try {
+		if (isDir) {
+			await removeDirRecursive(root + path);
+		} else {
+			await remove(root + path);
+		}
+	} catch (e) {}
+	return;
 }
 export async function renameMod(path: string, newName: string, pathMode = false) {
 	let newPath = path.split("\\").slice(0, -1).join("\\") + "\\" + newName;
@@ -501,7 +461,6 @@ export async function renameMod(path: string, newName: string, pathMode = false)
 		}
 		newPath = newName;
 	}
-
 	try {
 		await rename(root + path, pathMode ? root + newName : root + newPath);
 		store.set(localModListAtom, (prev) => {
@@ -513,8 +472,7 @@ export async function renameMod(path: string, newName: string, pathMode = false)
 						item.trueParent = item.parent.replaceAll("DISABLED_", "");
 					}
 					item.path = newPath;
-					if(!pathMode)
-					item.name = newName;
+					if (!pathMode) item.name = newName;
 					item.truePath = newPath.replaceAll("DISABLED_", "");
 					item.children = renameDirContentRecr(item.children, path, newPath);
 					break;
@@ -549,7 +507,7 @@ export async function getDirResructurePlan() {
 			name: item.name,
 			isDirectory: item.isDirectory,
 		}));
-	let cats: {[key:string]:DirRestructureItem} = {};
+	let cats: { [key: string]: DirRestructureItem } = {};
 	let finalEntries = [];
 	let found = false;
 	let next = true;
@@ -599,11 +557,8 @@ export async function getDirResructurePlan() {
 		} as DirRestructureItem);
 	}
 	finalEntries = finalEntries.sort(sort);
-	//console.log({
-	// 	from: entries,
-	// 	to: finalEntries,
-	// });
-	// console.log(next);
+	
+	
 	store.set(consentOverlayDataAtom, {
 		title: "Confirm changes",
 		from: entries,
@@ -618,9 +573,9 @@ export async function createRestorePoint(prefix = "") {
 		finished: false,
 		open: true,
 	});
-	let progressBar: HTMLElement|null = document.querySelector("#restore-progress");
-	let progressMessage: HTMLElement|null = document.querySelector("#restore-progress-message");
-	let progressPerct: HTMLElement|null = document.querySelector("#restore-progress-percentage");
+	let progressBar: HTMLElement | null = document.querySelector("#restore-progress");
+	let progressMessage: HTMLElement | null = document.querySelector("#restore-progress-message");
+	let progressPerct: HTMLElement | null = document.querySelector("#restore-progress-percentage");
 	while (!progressBar || !progressMessage || !progressPerct) {
 		await new Promise((resolve) => setTimeout(resolve, 10));
 		progressBar = progressBar || document.querySelector("#restore-progress");
@@ -634,7 +589,7 @@ export async function createRestorePoint(prefix = "") {
 	try {
 		await mkdir(joinPath(root, RESTORE));
 	} catch (e) {
-		//console.log("Folder already exists", e);
+		
 	}
 	let restorePointName = prefix + "RESTORE-" + formatDateTime();
 	await countFilesInDir(root, progressMessage);
@@ -645,7 +600,6 @@ export async function createRestorePoint(prefix = "") {
 	}
 	result = "Ok";
 	await copyDirWithProgress(root, joinPath(root, RESTORE, restorePointName), progressBar, progressPerct, progressMessage);
-
 	store.set(progressOverlayDataAtom, (prev) => ({
 		title: result == "Ok" ? "Restore Point Created" : result,
 		finished: true,
@@ -663,14 +617,25 @@ export async function restoreFromPoint(name: string) {
 		finished: false,
 		open: true,
 	});
-	let progressBar: HTMLElement|null = document.querySelector("#restore-progress");
-	let progressMessage: HTMLElement|null = document.querySelector("#restore-progress-message");
-	let progressPerct: HTMLElement|null = document.querySelector("#restore-progress-percentage");
+	let progressBar: HTMLElement | null = document.querySelector("#restore-progress");
+	let progressMessage: HTMLElement | null = document.querySelector("#restore-progress-message");
+	let progressPerct: HTMLElement | null = document.querySelector("#restore-progress-percentage");
 	while (!progressBar || !progressMessage || !progressPerct) {
 		await new Promise((resolve) => setTimeout(resolve, 10));
 		progressBar = progressBar || document.querySelector("#restore-progress");
 		progressMessage = progressMessage || document.querySelector("#restore-progress-message");
 		progressPerct = progressPerct || document.querySelector("#restore-progress-percentage");
+	}
+	progressMessage.innerText = "Removing current files";
+	let entries = (await readDir(root)).filter((item) => item.name != RESTORE && item.name != IGNORE);
+	for (let entry of entries) {
+		try {
+			await removeDirRecursive(joinPath(root, entry.name));
+		} catch {
+			try {
+				await remove(joinPath(root, entry.name));
+			} catch {}
+		}
 	}
 	progressMessage.innerText = "Discovering files";
 	completedFiles = 0;
@@ -685,7 +650,6 @@ export async function restoreFromPoint(name: string) {
 		result = "Ok";
 		await copyDirWithProgress(path, root, progressBar, progressPerct, progressMessage);
 	}
-
 	store.set(progressOverlayDataAtom, (prev) => ({
 		title: result == "Ok" ? "Restoration Completed" : result,
 		finished: true,
@@ -713,10 +677,10 @@ export async function listRestorePointContents(name: string) {
 }
 export async function applyPreset(root: string, preset: Preset) {
 	if (!preset || !preset.data || preset.data.length == 0) return;
-	for (let item of preset.data) {
-		let path:string|string[] = item.split("\\");
+	const renameOperations = preset.data.map(async (item) => {
+		let path: string | string[] = item.split("\\");
 		let name = path.pop();
-		if( !name) continue;
+		if (!name) return;
 		if (name.startsWith("DISABLED_")) {
 			name = name.slice(9);
 		} else {
@@ -727,5 +691,6 @@ export async function applyPreset(root: string, preset: Preset) {
 		try {
 			await rename(root + path, root + item);
 		} catch {}
-	}
+	});
+	await Promise.all(renameOperations);
 }

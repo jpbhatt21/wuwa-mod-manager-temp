@@ -1,44 +1,92 @@
-import { apiRoutes, DownloadItem, getTimeDifference, onlineDownloadListAtom, onlineModeAtom, OnlineModImage, onlineSelectedItemAtom, rightSidebarOpenAtom } from "@/utils/vars";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { apiRoutes,  getTimeDifference,  localDataAtom, localModListAtom, onlineDownloadListAtom, onlineModeAtom, onlineSelectedItemAtom, rightSidebarOpenAtom } from "@/utils/vars";
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { ChevronDown, Disc, Download, Loader2 } from "lucide-react";
+import { ChevronDown, Disc, Download, EllipsisVerticalIcon, Loader2, Redo2, Upload } from "lucide-react";
 import { useAtomValue, useSetAtom } from "jotai";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useEffect, useState } from "react";
+import Carousel from "./components/Carousel";
+import { useInstalledItems } from "@/utils/commonHooks";
+import { modRouteFromURL, refreshRootDir, saveConfig } from "@/utils/fsUtils";
+import { DownloadItem, LocalData, OnlineMod } from "@/utils/types";
+
+interface ModFile {
+	_idRow: number;
+	_sFile: string;
+	_nFilesize: number;
+	_sDescription: string;
+	_tsDateAdded: number;
+	_nDownloadCount: number;
+	_sDownloadUrl: string;
+	_sMd5Checksum: string;
+}
+
+interface ModUpdateChangeLog {
+	_sTitle: string;
+	_sText: string;
+}
+
+interface ModUpdate {
+	_sText: string;
+	_sTitle: string;
+	_tsDateAdded: number;
+	_sVersion: string;
+	_aChangeLog?: ModUpdateChangeLog[];
+}
+
+interface ModItemState extends Partial<OnlineMod> {
+	status?: string;
+	loaded?: boolean;
+	_aFiles?: ModFile[];
+	_aCategory?: { _sName: string };
+	_sText?: string;
+	_eUpdate?: ModUpdate;
+	_sUpdateName?: string;
+	_sUpdateVersion?: string;
+	_sUpdateDate?: number;
+	_aUpdateChangeLog?: ModUpdateChangeLog[];
+	_sUpdateText?: string;
+}
 
 let now = Math.round(Date.now() / 1000);
-let cache = new Map();
+let cache = new Map<string, ModItemState>();
 let cur: string;
 
 function RightOnline() {
 	const setOnlineDownloadList = useSetAtom(onlineDownloadListAtom);
-
 	const onlineSelectedItem = useAtomValue(onlineSelectedItemAtom);
 	const online = useAtomValue(onlineModeAtom);
-
+	const installedItems = useInstalledItems();
+	const type = (() => {
+		const installedItem = installedItems.installed.find((item) => item.source && onlineSelectedItem.includes(modRouteFromURL(item.source)));
+		return installedItem ? (installedItem.modStatus ? "Update" : "Reinstall") : "Install";
+	})();
 	const [popoverOpen, setPopoverOpen] = useState(false);
+	const [specialPopoverOpen, setSpecialPopoverOpen] = useState(false);
 	const [updateOpen, setUpdateOpen] = useState(false);
 	const [aboutOpen, setAboutOpen] = useState(true);
-	const [curPreview, setCurPreview] = useState(0);
-	const [item, setItem] = useState({} as any);
-	const setRightSidebarOpen = useSetAtom(rightSidebarOpenAtom)
-
+	const [item, setItem] = useState<ModItemState>({});
+	const setRightSidebarOpen = useSetAtom(rightSidebarOpenAtom);
+	const setLocalData = useSetAtom(localDataAtom);
+	const setLocalModList = useSetAtom(localModListAtom);
 	cur = onlineSelectedItem.split("/").slice(-1)[0];
-
 	useEffect(() => {
 		const controller = new AbortController();
 		now = Math.round(Date.now() / 1000);
 		if (onlineSelectedItem != "-1" && online) {
 			setRightSidebarOpen(true);
 			if (cache.has(cur)) {
-				setItem(cache.get(cur));
+				const cachedItem = cache.get(cur);
+				if (cachedItem) {
+					setItem(cachedItem);
+				}
 				setAboutOpen(true);
 				setUpdateOpen(false);
-				setCurPreview(0);
 				setPopoverOpen(false);
-			} else setItem((prev: any) => ({ ...prev, status: "Loading", loaded: false }));
+				setSpecialPopoverOpen(false);
+			} else setItem((prev) => ({ ...prev, status: "Loading", loaded: false }));
 			fetch(apiRoutes.modUpdates(onlineSelectedItem), { signal: controller.signal })
 				.then((res) => res.json())
 				.then((data) => {
@@ -59,7 +107,6 @@ function RightOnline() {
 							if (data2._idRow != cur) return;
 							setAboutOpen(true);
 							setUpdateOpen(false);
-							setCurPreview(0);
 							setItem(data2);
 						});
 				});
@@ -70,10 +117,95 @@ function RightOnline() {
 			controller.abort();
 		};
 	}, [onlineSelectedItem, online]);
-
+	useEffect(() => {
+		if (item?._sProfileUrl) {
+			const installedItem = installedItems.installed.find((it) => it.source && item._sProfileUrl && item._sProfileUrl.includes(it.source));
+			if (installedItem) {
+				setLocalData((prevData: LocalData) => {
+					if (installedItem.name)
+						prevData[installedItem.name] = {
+							...prevData[installedItem.name],
+							viewedAt: now * 1000,
+						};
+					return { ...prevData };
+				});
+				(async () => {
+					console.log("stage 3");
+					let items = await refreshRootDir("");
+					setLocalModList(items);
+					saveConfig();
+				})();
+			}
+		}
+	}, [item]);
+	const popoverContent = item._aFiles?.map((file: any) => (
+		<Button
+			className="min-h-fit flex items-center justify-center w-full gap-1 p-2 overflow-hidden"
+			onClick={() => {
+				setOnlineDownloadList((prev) => {
+					let temp = [...prev];
+					let dlitem = {
+						status: "pending",
+						addon: specialPopoverOpen,
+						preview: item._aPreviewMedia && item._aPreviewMedia._aImages && item._aPreviewMedia._aImages.length > 0 ? item._aPreviewMedia._aImages[0]._sBaseUrl + "/" + item._aPreviewMedia._aImages[0]._sFile : "",
+						category: item._aCategory?._sName || "Unknown",
+						source: item._sProfileUrl || "",
+						file: file._sDownloadUrl,
+						updated: file._tsDateAdded,
+						name: item._sName + (specialPopoverOpen ? ` - ${file._sFile}` : ""),
+						fname: file._sFile,
+					} as DownloadItem;
+					let count = 1;
+					while (temp.find((x) => x.name == dlitem.name && x.fname == dlitem.fname)) {
+						dlitem.name = `${item._sName} (${count})`;
+						count++;
+					}
+					for (let i = 0; i <= temp.length; i++) {
+						if (i == temp.length) {
+							temp.push(dlitem);
+														return temp;
+						} else if (temp[i].status == "completed" || temp[i].status == "failed") {
+							temp = [...temp.slice(0, i), { ...dlitem }, ...temp.slice(i)];
+							break;
+						}
+					}
+					return temp;
+				});
+				setPopoverOpen(false);
+			}}>
+			<div className="w-54 text-start flex flex-col gap-1">
+				<p className="w-54 text-ellipsis wrap-break-word overflow-hidden text-base resize-none">{file._sFile}</p>
+				<div className="text-background flex flex-wrap w-full gap-1 text-xs">
+					{file._sAnalysisResultCode == "contains_exe" ? <div className=" w-12 px-1 text-center bg-red-300 rounded-lg">exe</div> : ""}
+					{file._sAnalysisState == "done" ? (
+						<>
+							{file._sAvastAvResult == "clean" ? <div className=" w-16 px-1 text-center bg-green-300 rounded-lg">AvastAV</div> : <div className=" w-16 px-1 text-center bg-red-300 rounded-lg">AvastAV</div>}
+							{file._sClamAvResult == "clean" ? <div className=" w-16 px-1 text-center bg-green-300 rounded-lg">ClamAV</div> : <div className=" w-16 px-1 text-center bg-red-300 rounded-lg">ClamAV</div>}
+						</>
+					) : (
+						<div className=" w-12 px-1 text-center bg-yellow-300 rounded-lg">pending</div>
+					)}
+				</div>
+				<p className="w-54 text-ellipsis brightness-75 wrap-break-word overflow-hidden text-xs resize-none">{file._sDescription}</p>
+			</div>
+			<div className="min-w-20 flex flex-col items-center">
+				{getTimeDifference(now, file._tsDateAdded)}
+				<div className=" item flex w-10 gap-1">
+					{" "}
+					<Download />
+					{file._nDownloadCount}
+				</div>
+				<div className=" flex gap-1">
+					{" "}
+					<Disc />
+					{file._nFilesize < 100 ? file._nFilesize.toFixed(2) + "B" : file._nFilesize < 100000 ? (file._nFilesize / 1000).toFixed(2) + "KB" : file._nFilesize < 100000000 ? (file._nFilesize / 1000000).toFixed(2) + "MB" : (file._nFilesize / 1000000000).toFixed(2) + "GB"}
+				</div>
+			</div>
+		</Button>
+	));
 	return (
 		<div
-			className="flex flex-col items-center h-full min-w-full overflow-hidden duration-300"
+			className="flex flex-col items-center w-full h-full overflow-hidden duration-300"
 			style={{
 				opacity: online ? 1 : 0,
 				transitionDelay: online ? "0.3s" : "0s",
@@ -88,8 +220,10 @@ function RightOnline() {
 				{item.status == "Loading" ? <Loader2 className="animate-spin text-accent w-8 h-8" /> : <></>}
 				<div className="text-accent text-xl">{item.status}</div>
 			</div>
-			<div className="text-accent min-w-16 flex items-center justify-center h-16 gap-3 px-3 border-b">
-				<Input readOnly type="text" key={item._sName} className="w-full border-0 rounded-none border-border border-b-1 select-none focus-within:select-auto overflow-hidden min-h-16 focus-visible:ring-[0px] focus-within:border-0 text-ellipsis" style={{ backgroundColor: "#fff0", fontSize: "1.5rem", opacity: !item.loaded ? 0 : 1 }} defaultValue={item._sName} />
+			<div className="text-accent min-h-16 flex items-center justify-start w-full gap-3 px-3 border-b">
+				<Label key={item._sName} className="w-full text-xl text-center" style={{ opacity: !item.loaded ? 0 : 1 }}>
+					{item._sName}
+				</Label>
 			</div>
 			<div
 				className="flex flex-col w-full pb-2 mb-24 overflow-hidden overflow-y-scroll"
@@ -97,44 +231,20 @@ function RightOnline() {
 					opacity: !item.loaded ? 0 : 1,
 				}}>
 				{
-					<div key={item._sName + "pix"} className="min-h-64 flex flex-col w-full gap-2 px-2 my-2">
+					<div key={item._sName + "pix"} className="max-h-59 flex flex-col w-full gap-2 px-2 mt-2 mb-3">
 						<Dialog>
 							<DialogTrigger asChild>
-								<div className="min-h-56 flex w-full h-56 gap-1 overflow-hidden border rounded-lg">{item._aPreviewMedia && item._aPreviewMedia._aImages && item._aPreviewMedia._aImages.length > 0 && item._aPreviewMedia._aImages.map((image: OnlineModImage, index: number) => <img className="object-contain min-w-full duration-200" src={image._sBaseUrl + "/" + image._sFile} alt={item._sName} style={{ marginLeft: index == 0 ? -20.25 * curPreview + "rem" : "" }} />)}</div>
+								<div className=" flex flex-col items-center w-full max-h-full gap-1 overflow-hidden pointer-events-none">{item._aPreviewMedia && item._aPreviewMedia._aImages && item._aPreviewMedia._aImages.length > 0 && <Carousel data={item._aPreviewMedia._aImages} />}</div>
 							</DialogTrigger>
-							<DialogContent className="min-w-[800px] min-h-[600px] flex flex-col items-center justify-center">
-								<DialogHeader className="text-accent flex items-center w-full">
-									<DialogTitle className="lft text-2xl">Preview Images</DialogTitle>
-								</DialogHeader>
-								{/* <Carousel className="w-[768px] h-[468px] border rounded-lg flex items-center overflow-hidden justify-center">
-										<CarouselPrevious className="z-20 w-8 -mr-8" />
-										<CarouselContent className="w-[768px] h-[468px] flex gap-1">
-											{item._aPreviewMedia &&
-												item._aPreviewMedia._aImages &&
-												item._aPreviewMedia._aImages.length > 0 &&
-												item._aPreviewMedia._aImages.map((image: any, index: number) => (
-													<CarouselItem className="min-w-[768px] h-[468px] flex items-center justify-center duration-200">
-														<img className="max-w-[768px] max-h-[468px] duration-200     object-contain" src={image._sBaseUrl + "/" + image._sFile} alt={item._sName} style={{ marginLeft: index == 0 ? -768 * curPreview + "px " : "" }} />
-													</CarouselItem>
-												))}
-										</CarouselContent>
-										<CarouselNext className=" -ml-8" />
-									</Carousel> */}
+							<DialogContent className="min-w-180 wuwa-ft min-h-140 bg-background/50 border-border flex flex-col items-center gap-4 p-4 overflow-hidden border-2 rounded-lg">
+								<div className="min-h-fit text-accent my-6 text-3xl">Preview Images</div>
+								{item._aPreviewMedia && item._aPreviewMedia._aImages && item._aPreviewMedia._aImages.length > 0 && (
+									<div className="flex flex-col w-full h-full overflow-hidden gap-2 rounded-lg">
+										<Carousel data={item._aPreviewMedia._aImages} big={true} />
+									</div>
+								)}
 							</DialogContent>
 						</Dialog>
-						<div className="flex flex-wrap w-full min-h-2 h-2  gap-1 items-center justify-center">
-							{item._aPreviewMedia &&
-								item._aPreviewMedia._aImages &&
-								item._aPreviewMedia._aImages.length > 0 &&
-								item._aPreviewMedia._aImages.map((_: any, index: number) => (
-									<div
-										className={"h-full aspect-square rounded-full border duration-200 " + (index == curPreview ? "bg-accent border-accent" : " hover:bg-border")}
-										onClick={() => {
-											setCurPreview(index);
-										}}
-									/>
-								))}
-						</div>
 					</div>
 				}
 				{item._sText && (
@@ -161,19 +271,19 @@ function RightOnline() {
 								{item._sUpdateName}
 								<label className="flex flex-col text-xs text-gray-300">
 									{" "}
-									<label>{item._sUpdateVersion}</label> <label className=" text-cyan-200">{getTimeDifference(now, item._sUpdateDate)}</label>
+									<label>{item._sUpdateVersion}</label> <label className=" text-cyan-200">{getTimeDifference(now, item._sUpdateDate || 0)}</label>
 								</label>
 							</div>
 							<div className=" flex flex-col gap-2">
 								{item._aUpdateChangeLog &&
-									item._aUpdateChangeLog.map((item: any, index: number) => (
+									item._aUpdateChangeLog.map((changeItem, index: number) => (
 										<div key={index} className="flex items-center gap-2">
 											<div className="min-w-2 min-h-2 bg-accent rounded-full" />
-											<label className=" text-cyan-100 font-sans">{item.text}</label>
+											<label className=" text-cyan-100 font-sans">{changeItem._sText}</label>
 										</div>
 									))}
 							</div>
-							<div className="w-full font-sans" dangerouslySetInnerHTML={{ __html: item._sUpdateText }}></div>
+							{item._sUpdateText && <div className="w-full font-sans" dangerouslySetInnerHTML={{ __html: item._sUpdateText }}></div>}
 						</CollapsibleContent>
 					</Collapsible>
 				)}
@@ -184,75 +294,27 @@ function RightOnline() {
 					opacity: !item.loaded ? 0 : 1,
 				}}>
 				<Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
-					<PopoverTrigger className="w-full flex h-10 gap-4 overflow-hidden text-ellipsis bg-button text-accent shadow-xs hover:brightness-120  duration-300  items-center justify-center active:scale-90 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive" disabled={!item._aFiles || item._aFiles?.length == 0}>
-						<Download />
-						Install
+					<PopoverTrigger style={{ width: `${type == "Install" ? "19.5rem" : "16.5rem"}` }} className="flex h-10 gap-4 overflow-hidden text-ellipsis bg-button text-accent shadow-xs hover:brightness-120  duration-300  items-center justify-center active:scale-90 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive" disabled={!item._aFiles || item._aFiles?.length == 0}>
+						{{ Install: <Download />, Reinstall: <Redo2 />, Update: <Upload /> }[type]}
+						{type}
 					</PopoverTrigger>
-					<PopoverContent className="w-80  max-h-[75vh] overflow-auto gap-1 bg-sidebar p-1 flex flex-col">
-						{item._aFiles?.map((file: any) => (
-							<Button
-								className="min-h-fit flex items-center justify-center w-full gap-1 p-2 overflow-hidden"
-								onClick={() => {
-									setOnlineDownloadList((prev) => {
-										let temp = [...prev];
-										let dlitem = {
-											status: "pending",
-											preview: item._aPreviewMedia && item._aPreviewMedia._aImages && item._aPreviewMedia._aImages.length > 0 ? item._aPreviewMedia._aImages[0]._sBaseUrl + "/" + item._aPreviewMedia._aImages[0]._sFile : "",
-											category: item._aCategory._sName,
-											source: item._sProfileUrl,
-											file: file._sDownloadUrl,
-											updated: file._tsDateAdded,
-											name: item._sName,
-											fname: file._sFile,
-										} as DownloadItem;
-										for (let i = 0; i <= temp.length; i++) {
-											if (i == temp.length) {
-												temp.push(dlitem);
-												//console.log(temp);
-												return temp;
-											} else if (temp[i].status == "completed" || temp[i].status == "failed") {
-												temp = [...temp.slice(0, i), { ...dlitem }, ...temp.slice(i)];
-												break;
-											}
-										}
-										return temp;
-									});
-								}}>
-								<div className="w-54 text-start  flex flex-col gap-1">
-									<p className="w-54 text-ellipsis wrap-break-word overflow-hidden text-base resize-none">{file._sFile}</p>
-									<div className="text-background flex flex-wrap w-full gap-1 text-xs">
-										{file._sAnalysisResultCode == "contains_exe" ? <div className=" w-12 px-1 text-center bg-red-300 rounded-lg">exe</div> : ""}
-										{file._sAnalysisState == "done" ? (
-											<>
-												{file._sAvastAvResult == "clean" ? <div className=" w-16 px-1 text-center bg-green-300 rounded-lg">AvastAV</div> : <div className=" w-16 px-1 text-center bg-red-300 rounded-lg">AvastAV</div>}
-												{file._sClamAvResult == "clean" ? <div className=" w-16 px-1 text-center bg-green-300 rounded-lg">ClamAV</div> : <div className=" w-16 px-1 text-center bg-red-300 rounded-lg">ClamAV</div>}
-											</>
-										) : (
-											<div className=" w-12 px-1 text-center bg-yellow-300 rounded-lg">pending</div>
-										)}
-									</div>
-									<p className="w-54 text-ellipsis brightness-75 wrap-break-word overflow-hidden text-xs resize-none">{file._sDescription}</p>
-								</div>
-								<div className="min-w-20 flex flex-col items-center">
-									{getTimeDifference(now, file._tsDateAdded)}
-									<div className=" item flex w-10 gap-1">
-										{" "}
-										<Download />
-										{file._nDownloadCount}
-									</div>
-									<div className=" flex gap-1">
-										{" "}
-										<Disc />
-										{file._nFilesize < 100 ? file._nFilesize.toFixed(2) + "B" : file._nFilesize < 100000 ? (file._nFilesize / 1000).toFixed(2) + "KB" : file._nFilesize < 100000000 ? (file._nFilesize / 1000000).toFixed(2) + "MB" : (file._nFilesize / 1000000000).toFixed(2) + "GB"}
-									</div>
-								</div>
-							</Button>
-						))}
+					<PopoverContent className="w-80 max-h-[75vh] overflow-auto gap-1 bg-sidebar p-1 flex flex-col" style={{ marginLeft: type == "Install" ? "0rem" : "3rem", marginBottom: "0.5rem" }}>
+						{popoverContent}
 					</PopoverContent>
 				</Popover>
+				{type !== "Install" && (
+					<Popover open={specialPopoverOpen} onOpenChange={setSpecialPopoverOpen}>
+						<PopoverTrigger className="w-9 flex h-10 gap-4 overflow-hidden text-ellipsis bg-button text-accent shadow-xs hover:brightness-120  duration-300  items-center justify-center active:scale-90 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive" disabled={!item._aFiles || item._aFiles?.length == 0}>
+							<EllipsisVerticalIcon />
+						</PopoverTrigger>
+						<PopoverContent className="w-80 mr-2 mb-2 max-h-[75vh] overflow-auto gap-1 bg-sidebar p-1 flex flex-col">
+							<Label className=" text-accent pl-1 py-0.5">Install Separately</Label>
+							{popoverContent}
+						</PopoverContent>
+					</Popover>
+				)}
 			</div>
 		</div>
 	);
 }
-
 export default RightOnline;

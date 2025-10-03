@@ -1,61 +1,66 @@
-import { localFilterNameAtom, localSelectedPresetAtom, localPresetListAtom, modRootDirAtom, localModListAtom, onlineModeAtom, leftSidebarOpenAtom, Preset, LocalMod } from "@/utils/vars";
+import { localFilterNameAtom, localSelectedPresetAtom } from "@/utils/vars";
 import { SidebarContent, SidebarGroup, SidebarGroupLabel } from "@/components/ui/sidebar";
-import { refreshRootDir, applyPreset, saveConfig, selectRootDir } from "@/utils/fsutils";
+import { refreshRootDir, applyPreset, saveConfig, selectRootDir } from "@/utils/fsUtils";
 import { Check, Circle, Edit, Folder, Plus, Save, X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { Separator } from "@radix-ui/react-separator";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useAtom, useAtomValue } from "jotai";
-
-let focusedPreset = -1;
-
+import { useAtom } from "jotai";
+import { Preset, LocalMod } from "@/utils/types";
+import { useLocalModState, useAppSettings, useSidebarState } from "@/utils/commonHooks";
+let focusedPresetIndex = -1;
 function LeftLocal() {
 	const [localSelectedPreset, setLocalSelectedPreset] = useAtom(localSelectedPresetAtom);
-	const [localPresets, setLocalPresets] = useAtom(localPresetListAtom);
 	const [localFilter, setLocalFilter] = useAtom(localFilterNameAtom);
-	const [localModList, setLocalModList] = useAtom(localModListAtom);
-	
-	const leftSidebarOpen = useAtomValue(leftSidebarOpenAtom);
-	const rootDir = useAtomValue(modRootDirAtom);
-	const online = useAtomValue(onlineModeAtom);
-
-	function update_preset(i: number, name: string, save = false, del = false) {
-		let temp: Preset[] = [...localPresets];
-		let created = false;
-		if (i == temp.length) {
-			temp.push({ name: name, data: [], hotkey: "" });
-			created = true;
+	const { localModList, setLocalModList, root: rootDir } = useLocalModState();
+	const { presets: localPresets, setPresets: setLocalPresets, online } = useAppSettings();
+	const { leftSidebarOpen } = useSidebarState();
+	const updatePreset = (index: number, name: string, shouldSave = false, shouldDelete = false) => {
+		const tempPresets: Preset[] = [...localPresets];
+		let wasCreated = false;
+		
+		if (index === tempPresets.length) {
+			tempPresets.push({ name, data: [], hotkey: "" });
+			wasCreated = true;
 		}
-		temp[i].name = name;
-		if (save) {
-			temp[i].data = [];
-			function explorer(items: LocalMod[]) {
-				for (let item of items) {
-					temp[i].data.push(item.path);
-					if (item.children && item.children.length > 0 && item.depth < 2 && (!item.children.filter(x=>x.name.endsWith(".ini")||item.depth<1))) explorer(item.children);
+		
+		tempPresets[index].name = name;
+		
+		if (shouldSave) {
+			tempPresets[index].data = [];
+			const exploreItems = (items: LocalMod[]) => {
+				for (const item of items) {
+					tempPresets[index].data.push(item.path);
+					if (item.children && item.children.length > 0 && item.depth < 2 && 
+						(!item.children.filter(x => x.name.endsWith(".ini") || item.depth < 1))) {
+						exploreItems(item.children);
+					}
 				}
-			}
-			explorer(localModList);
+			};
+			exploreItems(localModList);
 		}
-		if (del) {
-			temp.splice(i, 1);
-			if (localSelectedPreset == i) {
+		
+		if (shouldDelete) {
+			tempPresets.splice(index, 1);
+			if (localSelectedPreset === index) {
 				setLocalSelectedPreset(-1);
-			} else if (localSelectedPreset > i) {
+			} else if (localSelectedPreset > index) {
 				setLocalSelectedPreset(localSelectedPreset - 1);
 			}
-		} else if (created) {
-			setLocalSelectedPreset(i);
+		} else if (wasCreated) {
+			setLocalSelectedPreset(index);
 		}
-		setLocalPresets(temp);
-		if (created) {
-			setLocalSelectedPreset(i);
-			focusedPreset = i;
+		
+		setLocalPresets(tempPresets);
+		
+		if (wasCreated) {
+			setLocalSelectedPreset(index);
+			focusedPresetIndex = index;
 		}
+		
 		saveConfig();
-	}
-
+	};
 	return (
 		<div
 			className="flex flex-col h-full min-w-full duration-300"
@@ -126,7 +131,7 @@ function LeftLocal() {
 										className="min-h-10 flex justify-center w-full"
 										onClick={async (e) => {
 											if (e.target == e.currentTarget) {
-												// socket.emit("apply_preset", { preset: i });
+												
 												setLocalSelectedPreset(index);
 												await applyPreset(rootDir, preset);
 												setLocalModList(await refreshRootDir(""));
@@ -140,13 +145,13 @@ function LeftLocal() {
 										{leftSidebarOpen ? (
 											<div className={"w-full text-accent duration-200 rounded-lg px-2 fade-in pointer-events-none items-center flex gap-1 " + (localSelectedPreset == index ? " bg-accent text-background" : "bg-input/10")}>
 												<Input
-													autoFocus={index == focusedPreset}
+													autoFocus={index === focusedPresetIndex}
 													onFocus={(e) => {
 														e.currentTarget.select();
-														focusedPreset = -1;
+														focusedPresetIndex = -1;
 													}}
 													onBlur={(e) => {
-														if (e.currentTarget.value != preset.name) update_preset(index, e.currentTarget.value);
+														if (e.currentTarget.value !== preset.name) updatePreset(index, e.currentTarget.value);
 													}}
 													type="text"
 													className="w-full h-full p-2  pointer-events-none focus-within:pointer-events-auto overflow-hidden focus-visible:ring-[0px] border-0  text-ellipsis"
@@ -162,7 +167,7 @@ function LeftLocal() {
 												/>
 												<X
 													onClick={() => {
-														update_preset(index, preset.name, false, true);
+														updatePreset(index, preset.name, false, true);
 													}}
 													className=" pointer-events-auto"
 												/>
@@ -188,8 +193,8 @@ function LeftLocal() {
 							className="w-38.75"
 							style={{ width: leftSidebarOpen ? "" : "2.5rem" }}
 							onClick={() => {
-								let len = localPresets.length;
-								update_preset(len, "Preset" + (len + 1), true);
+								const presetLength = localPresets.length;
+								updatePreset(presetLength, `Preset${presetLength + 1}`, true);
 							}}>
 							<Plus className="w-6 h-6" />
 							<label className="duration-200 ease-linear" style={{ opacity: leftSidebarOpen ? "" : "0", width: leftSidebarOpen ? "2.5rem" : "0rem", marginRight: leftSidebarOpen ? "" : "-0.5rem" }}>
@@ -202,7 +207,7 @@ function LeftLocal() {
 									let prev = e.currentTarget.previousElementSibling as HTMLButtonElement;
 									prev?.click();
 								} else {
-									update_preset(localSelectedPreset, localPresets[localSelectedPreset].name, true);
+									updatePreset(localSelectedPreset, localPresets[localSelectedPreset].name, true);
 								}
 							}}
 							className="w-38.75"
@@ -230,7 +235,7 @@ function LeftLocal() {
 						className="aspect-square flex items-center justify-center w-10 h-10"
 						onClick={async () => {
 							await selectRootDir();
-							// window.location.reload();
+							
 						}}
 						style={{
 							marginLeft: leftSidebarOpen ? "" : "0.25rem",
@@ -252,5 +257,4 @@ function LeftLocal() {
 		</div>
 	);
 }
-
 export default LeftLocal;

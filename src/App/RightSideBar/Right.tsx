@@ -1,7 +1,6 @@
 import { Sidebar, SidebarContent } from "@/components/ui/sidebar";
 import RightOnline from "@/App/RightSideBar/RightOnline";
 import RightLocal from "@/App/RightSideBar/RightLocal";
-
 function RightSidebar() {
 	return (
 		<Sidebar side="right">
@@ -12,5 +11,4 @@ function RightSidebar() {
 		</Sidebar>
 	);
 }
-
 export default RightSidebar;

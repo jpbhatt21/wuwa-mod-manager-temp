@@ -1,16 +1,15 @@
-import { onlinePathAtom, localCategoryNameAtom, categoryListAtom, LocalMod } from "@/utils/vars";
+import { onlinePathAtom, localCategoryNameAtom, categoryListAtom, onlineTypeAtom, onlineSortAtom } from "@/utils/vars";
 import { FileQuestion, Group } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAtom, useAtomValue } from "jotai";
-
+import { LocalMod } from "@/utils/types";
 function Catbar({ online, items }: { online: boolean; items: LocalMod[] }) {
 	const [selectedCategory, setSelectedCategory] = useAtom(localCategoryNameAtom);
 	const [onlinePath, setOnlinePath] = useAtom(onlinePathAtom);
-
+	const onlineType = useAtomValue(onlineTypeAtom);
 	const categories = useAtomValue(categoryListAtom);
-
+	const onlineSort = useAtomValue(onlineSortAtom);
 	let localCat = categories.filter((category) => items.filter((item) => item.parent == "\\" + category._sName).length > 0);
-
 	return (
 		<>
 			<div className="min-h-20 flex items-center justify-center w-full h-20 p-2">
@@ -52,17 +51,17 @@ function Catbar({ online, items }: { online: boolean; items: LocalMod[] }) {
 										if (category._special) {
 											return;
 										}
-										if (onlinePath == "Skins/" + category._sName) {
-											setOnlinePath("home");
+										if (onlinePath.startsWith("Skins/" + category._sName)) {
+											setOnlinePath("home&type="+onlineType);
 											return;
 										}
-										setOnlinePath("Skins/" + category._sName);
+										setOnlinePath(`Skins/${category._sName}&_sort=${onlineSort}`);
 									} else {
 										setSelectedCategory(category._sName);
 									}
 								}}
 								style={{ scale: online && category._special ? "0" : "1", marginRight: online && category._special ? "-9.5rem" : "0rem", padding: online && category._special ? "0rem" : "" }}
-								className={(online ? onlinePath : selectedCategory) == (online ? "Skins/" : "") + category._sName ? " bg-accent text-background" : ""}>
+								className={(online ? onlinePath.startsWith(`Skins/${category._sName}`) : selectedCategory == category._sName) ? " bg-accent text-background" : ""}>
 								<img className="aspect-square h-full rounded-full pointer-events-none" src={category._sIconUrl} />
 								{category._sName}
 							</Button>
@@ -73,5 +72,4 @@ function Catbar({ online, items }: { online: boolean; items: LocalMod[] }) {
 		</>
 	);
 }
-
 export default Catbar;

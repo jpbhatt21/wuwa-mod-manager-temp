@@ -1,8 +1,8 @@
-import { categoryListAtom, refreshAppIdAtom, localFilteredModListAtom, localSelectedModAtom, previewUri, modRootDirAtom, onlineModeAtom, localDataAtom, LocalMod, onlineSelectedItemAtom } from "@/utils/vars";
+import { categoryListAtom, refreshAppIdAtom, localFilteredModListAtom, localSelectedModAtom, previewUri, modRootDirAtom, onlineModeAtom, localDataAtom,  onlineSelectedItemAtom } from "@/utils/vars";
 import { ArrowUpRightFromSquareIcon, Check, ChevronDown, CircleSlash, Edit, File, Folder, Link } from "lucide-react";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { modRouteFromURL, renameMod, saveConfig, savePreviewImage } from "@/utils/fsutils";
+import { modRouteFromURL, renameMod, saveConfig, savePreviewImage } from "@/utils/fsUtils";
 import { SidebarGroup } from "@/components/ui/sidebar";
 import { openPath } from "@tauri-apps/plugin-opener";
 import { Button } from "@/components/ui/button";
@@ -11,22 +11,42 @@ import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import wwmm from "@/wwmm.png";
-
+import { LocalMod } from "@/utils/types";
 function RightLocal() {
 	const localFilteredItems = useAtomValue(localFilteredModListAtom);
 	const localSelectedItem = useAtomValue(localSelectedModAtom);
 	const lastUpdated = useAtomValue(refreshAppIdAtom);
 	const categories = useAtomValue(categoryListAtom);
-	const [online,setOnline] = useAtom(onlineModeAtom);
+	const [online, setOnline] = useAtom(onlineModeAtom);
 	const root = useAtomValue(modRootDirAtom);
 	const setOnlineSelectedItem = useSetAtom(onlineSelectedItemAtom);
-
 	const [localData, setLocalData] = useAtom(localDataAtom);
-
 	const [category, setCategory] = useState({ name: "-1", icon: "" });
 	const [popoverOpen, setPopoverOpen] = useState(false);
 	const [item, setItem] = useState({} as LocalMod);
-
+	function handleInAppLink(url: string) {
+		let modRoute = modRouteFromURL(url);
+		if (modRoute) {
+			setOnline(true);
+			setOnlineSelectedItem(modRoute);
+		}
+	}
+	useEffect(()=>{
+		const handlePaste = (event: ClipboardEvent) => {
+			let activeEl = document.activeElement;
+			if (activeEl?.tagName === "BUTTON") activeEl = null;
+			if (activeEl === document.body || activeEl === null) {
+				let text = event.clipboardData?.getData("Text");
+				if(text?.startsWith("http")) {
+					event.preventDefault();
+					handleInAppLink(text);
+					
+				}
+			}
+		};
+		document.addEventListener("paste", handlePaste);
+		return () => document.removeEventListener("paste", handlePaste);
+	},[])
 	useEffect(() => {
 		if (localFilteredItems.length > localSelectedItem && localFilteredItems[localSelectedItem]) setItem(localFilteredItems[localSelectedItem]);
 		if (!localFilteredItems[localSelectedItem]) return;
@@ -36,7 +56,6 @@ function RightLocal() {
 			setCategory({ name: findCat._sName, icon: findCat._sIconUrl });
 		} else setCategory({ name: "-1", icon: "" });
 	}, [localSelectedItem, localFilteredItems]);
-
 	return (
 		<div
 			className="flex flex-col h-full min-w-full gap-0 duration-300"
@@ -46,8 +65,11 @@ function RightLocal() {
 				pointerEvents: online ? "none" : "auto",
 			}}>
 			<div className="min-w-16 flex items-center justify-center h-16 gap-3 px-3 border-b">
-				<Button className="bg-input/0 hover:bg-input/0 w-6 h-10 -mr-2 text-white">{item.isDir ? <Folder className="scale-150" /> : <File className="scale-150" />}</Button>
+				<Button className="bg-input/0 hover:bg-input/0 text-accent w-6 h-10 -mr-2">{item.isDir ? <Folder className="scale-150" /> : <File className="scale-150" />}</Button>
 				<Input
+				onFocus={(e)=>{
+					e.currentTarget.select();
+				}}
 					onBlur={(e) => {
 						let currentValue = e.currentTarget.value.replaceAll("DISABLED_", "");
 						let new_path: string | string[] = item.path.split("\\");
@@ -74,7 +96,6 @@ function RightLocal() {
 					style={{ backgroundColor: "#fff0", fontSize: "1rem" }}
 					defaultValue={item.name?.replaceAll("DISABLED_", "")}
 				/>
-
 				<div
 					className="min-h-8 text-accent hover:border-border border-border/0 min-w-8 bg-pat2 hover:bg-pat1 flex items-center justify-center p-2 duration-200 border rounded-lg"
 					onClick={() => {
@@ -86,7 +107,7 @@ function RightLocal() {
 			<SidebarGroup className="min-h-82 px-1 mt-1 select-none">
 				<Edit
 					onClick={() => {
-						// socket.emit("set_preview_image", { path: item.path });
+						
 						savePreviewImage(root + item.path);
 					}}
 					className="min-h-12 min-w-12 bg-background/50 z-25 text-accent rounded-tr-md rounded-bl-md self-end w-12 p-3 -mb-12 border"
@@ -101,9 +122,8 @@ function RightLocal() {
 			</SidebarGroup>
 			<SidebarGroup className="px-1 min-h-42.5 mt-1">
 				<div className="flex flex-col w-full border rounded-lg">
-					<div className="bg-pat2  flex items-center justify-between w-full p-1 rounded-lg">
+					<div className="bg-pat2 flex items-center justify-between w-full p-1 rounded-lg">
 						<Button className=" h-12 bg-accent/0 hover:bg-accent/0   min-w-28.5 w-28.5 text-accent">Category</Button>
-
 						{item.depth == 1 ? (
 							<Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
 								<PopoverTrigger asChild>
@@ -122,7 +142,7 @@ function RightLocal() {
 															  }
 															: {}
 													}>
-													{/* {category.name == "Uncategorized" && ques({ className: " h-full aspect-square scale-175 pointer-events-none " })} */}
+													{}
 												</div>
 												<div className="w-30 text-ellipsis overflow-hidden break-words pointer-events-none">{category.name}</div>
 											</>
@@ -173,7 +193,7 @@ function RightLocal() {
 																	  }
 																	: {}
 															}>
-															{/* {cat.name == "Uncategorized" && ques({ className: " h-full text-inherit aspect-square scale-175 pointer-events-none " })} */}
+															{}
 														</div>
 														<div className="w-35 text-ellipsis overflow-hidden break-words">{cat._sName}</div>
 														<Check className={cn("ml-auto", category.name === cat._sName ? "opacity-100" : "opacity-0")} />
@@ -190,7 +210,6 @@ function RightLocal() {
 							</div>
 						)}
 					</div>
-
 					<div className="bg-pat1 flex justify-between w-full p-1 rounded-lg">
 						<Button className="bg-input/0 hover:bg-input/0 h-12 w-28.5 text-accent">Source</Button>
 						<div className="w-48.5 flex items-center px-1">
@@ -202,6 +221,7 @@ function RightLocal() {
 												...prev[item.truePath],
 												source: e.currentTarget.value,
 												updatedAt: Date.now(),
+												viewedAt: 0,
 											};
 											return { ...prev };
 										});
@@ -215,21 +235,16 @@ function RightLocal() {
 								key={localData[item.truePath]?.source}
 								defaultValue={localData[item.truePath]?.source}
 							/>
-							<div className="bg-pat2 hover:brightness-150 p-2 duration-200 rounded-lg" onClick={() => {
-								if (localData[item.truePath]?.source && localData[item.truePath]?.source != ""){
-									let modRoute=modRouteFromURL(localData[item.truePath].source||"");
-									if (modRoute)
-									{	setOnline(true);
-										setOnlineSelectedItem(modRoute);
+							<div
+								className="bg-pat2 hover:brightness-150 p-2 duration-200 rounded-lg"
+								onClick={() => {
+									if (localData[item.truePath]?.source && localData[item.truePath]?.source != "") {
+										handleInAppLink(localData[item.truePath].source || "");
 									}
-								}
-
-							}}>
+								}}>
 								<Link className=" w-4 h-4" />
 							</div>
-							{/* <a href={localData[item.truePath]?.source} target="_blank" className="bg-pat2 hover:brightness-150 p-2 duration-200 rounded-lg">
-								<Link className=" w-4 h-4" />
-							</a> */}
+							{}
 						</div>
 					</div>
 					<div className="bg-pat2 flex justify-between w-full p-1 rounded-lg">
@@ -273,7 +288,7 @@ function RightLocal() {
 								<label className="text-c w-1/2 px-4">Action</label>
 							</div>
 							{item.keys?.map((hotkey, index) => (
-								<div key={index+item.path} className={"flex w-full items-center justify-center h-8 bg-pat" + (1 + (index % 2))}>
+								<div key={index + item.path} className={"flex w-full items-center justify-center h-8 bg-pat" + (1 + (index % 2))}>
 									<label className="text-c w-1/2 px-4">{hotkey.key}</label>
 									<label className="text-c w-1/2 px-4">{hotkey.name}</label>
 								</div>
@@ -285,5 +300,4 @@ function RightLocal() {
 		</div>
 	);
 }
-
 export default RightLocal;

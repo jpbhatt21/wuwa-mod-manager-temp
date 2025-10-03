@@ -1,21 +1,18 @@
-import { consentOverlayDataAtom, progressOverlayDataAtom } from "@/utils/vars";
-import { cancelRestore, getDirResructurePlan } from "@/utils/fsutils";
+import { consentOverlayDataAtom, progressOverlayDataAtom, updateInfo } from "@/utils/vars";
+import { cancelRestore, getDirResructurePlan } from "@/utils/fsUtils";
 import { Button } from "@/components/ui/button";
 import { useAtom, useSetAtom } from "jotai";
 import { motion } from "motion/react";
 import { useEffect } from "react";
-
 function Progress() {
 	const [restoreInfo, setRestoreInfo] = useAtom(progressOverlayDataAtom);
-	
 	const setPlannedChanges = useSetAtom(consentOverlayDataAtom);
-
 	useEffect(() => {
 		if (restoreInfo.open && restoreInfo.finished && restoreInfo.title == "Restore Point Created") {
+			updateInfo("Optimizing dir structure...");
 			setPlannedChanges({ title: "test", from: [], to: [], next: true });
 		}
 	}, [restoreInfo]);
-
 	return (
 		<motion.div
 			initial={{ opacity: 0, filter: "blur(6px)" }}
@@ -35,18 +32,16 @@ function Progress() {
 				</label>
 				<label id="restore-progress-percentage">0%</label>
 			</div>
-
 			<Button
-				className={"w-32 my-6 " + (!restoreInfo.finished && "hover:bg-[#cf7171] hover:text-background text-[#cf7171]")}
+				className={"w-32 my-6 " + (!restoreInfo.finished && "hover:bg-red-300 hover:text-background text-red-300")}
 				onClick={async () => {
 					setRestoreInfo((prev) => ({ ...prev, finished: true }));
 					if (!restoreInfo.finished) {
-						// Cancel the restore point creation process
+						
 						cancelRestore();
 					} else {
-						// Close the progress dialog
+						
 						if (restoreInfo.title == "Restoration Completed") getDirResructurePlan();
-
 						setRestoreInfo((prev) => ({ ...prev, open: false }));
 					}
 				}}>
@@ -55,5 +50,4 @@ function Progress() {
 		</motion.div>
 	);
 }
-
 export default Progress;

@@ -1,26 +1,64 @@
-import { localModListAtom, localCategoryNameAtom, localFilterNameAtom, localFilteredModListAtom, onlinePathAtom, apiRoutes, onlineDataAtom, onlineSelectedItemAtom } from "@/utils/vars";
-import { MouseEvent, UIEvent, useEffect } from "react";
+import {
+	localModListAtom,
+	localCategoryNameAtom,
+	localFilterNameAtom,
+	localFilteredModListAtom,
+	onlinePathAtom,
+	apiRoutes,
+	onlineDataAtom,
+	onlineSelectedItemAtom,
+	updateInfo,
+	onlineTypeAtom,
+	onlineSortAtom,
+	localSearchTermAtom,
+} from "@/utils/vars";
+import { MouseEvent, UIEvent, useEffect, useState } from "react";
 import { useAtomValue, useSetAtom } from "jotai";
+import MiniSearch from "minisearch";
+let searchDB: MiniSearch<LocalMod> | null = null;
+
 import Catbar from "./components/Catbar";
 import Navbar from "./components/Navbar";
 import MainLocal from "./MainLocal";
 import MainOnline from "./MainOnline";
-
-let pathPageCount = { home: 1 } as { [category: string]: number };
+import { LocalMod } from "@/utils/types";
+let pathPageCount = {} as { [category: string]: number };
 let loading = false;
 let max = 0;
-
-function Main({ leftSidebarOpen, setLeftSidebarOpen, rightSidebarOpen, setRightSidebarOpen, online }: { leftSidebarOpen: boolean; setLeftSidebarOpen: (open: boolean) => void; rightSidebarOpen: boolean; setRightSidebarOpen: (open: boolean) => void; online: boolean }) {
+let prevRSOpen = true;
+function Main({
+	leftSidebarOpen,
+	setLeftSidebarOpen,
+	rightSidebarOpen,
+	setRightSidebarOpen,
+	online,
+}: {
+	leftSidebarOpen: boolean;
+	setLeftSidebarOpen: (open: boolean) => void;
+	rightSidebarOpen: boolean;
+	setRightSidebarOpen: (open: boolean) => void;
+	online: boolean;
+}) {
 	const localSelectedCategory = useAtomValue(localCategoryNameAtom);
 	const localFilter = useAtomValue(localFilterNameAtom);
 	const localItems = useAtomValue(localModListAtom);
 	const onlinePath = useAtomValue(onlinePathAtom);
+	const onlineType = useAtomValue(onlineTypeAtom);
 	const onlineSelectedItem = useAtomValue(onlineSelectedItemAtom);
 	const setLocalFilteredItems = useSetAtom(localFilteredModListAtom);
 	const setOnlineData = useSetAtom(onlineDataAtom);
-
+	const localSearchTerm = useAtomValue(localSearchTermAtom);
+	const onlineSort = useAtomValue(onlineSortAtom);
+	const [intermediateList, setIntermediateList] = useState([] as typeof localItems);
+	const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
+	useEffect(() => {
+		const timer = setTimeout(() => {
+			setDebouncedSearchTerm(localSearchTerm);
+		}, 300);
+		return () => clearTimeout(timer);
+	}, [localSearchTerm]);
 	function loadMore(e: MouseEvent<HTMLDivElement, MouseEvent> | UIEvent<HTMLDivElement>) {
-		let lastChild = e.currentTarget.lastElementChild;
+		let lastChild = e.currentTarget.lastElementChild?.lastElementChild as HTMLDivElement;
 		let self = e.currentTarget;
 		if (lastChild && !loading && online) {
 			let selfRect = self.getBoundingClientRect();
@@ -28,102 +66,139 @@ function Main({ leftSidebarOpen, setLeftSidebarOpen, rightSidebarOpen, setRightS
 			if (lastChildRect.top < selfRect.bottom) {
 				loading = true;
 				pathPageCount[onlinePath]++;
+				if (max > 0 && pathPageCount[onlinePath] - 1 > max) {
+					loading = false;
+					return;
+				}
+				updateInfo(`Loading page ${pathPageCount[onlinePath]}/${Math.ceil(max)}`, 1000);
 				try {
-					if (onlinePath == "home")
-						fetch(apiRoutes.home("default", pathPageCount[onlinePath]))
-							.then((res) => res.json())
-							.then((data) => {
-								setOnlineData((prev) => {
-									return {
-										...prev,
-										home: [...prev.home, ...data._aRecords],
-									};
-								});
-								loading = false;
-							});
-					else if (onlinePath.startsWith("Skins") || onlinePath.startsWith("Other") || onlinePath.startsWith("UI"))
-						fetch(apiRoutes.category(onlinePath, "", pathPageCount[onlinePath]))
-							.then((res) => res.json())
-							.then((data) => {
-								setOnlineData((prev) => {
-									prev[onlinePath] = [...prev[onlinePath], ...data._aRecords];
-									return {
-										...prev,
-									};
-								});
-								loading = false;
-							});
+					if (onlinePath.startsWith("home"))
+						nextPage(apiRoutes.home({ page: pathPageCount[onlinePath], type: onlineType }), onlinePath);
+					else if (onlinePath.startsWith("Skins") || onlinePath.startsWith("Other") || onlinePath.startsWith("UI")) {
+						let cat = onlinePath.split("&_sort=")[0];
+						nextPage(apiRoutes.category({ cat, sort: onlineSort, page: pathPageCount[onlinePath] }), onlinePath);
+					} else if (onlinePath.startsWith("search/")) {
+						let term = onlinePath.replace("search/", "").split("&_type=")[0];
+						if (term.trim().length == 0) return;
+						nextPage(apiRoutes.search({ term, type: onlineType, page: pathPageCount[onlinePath] }), onlinePath);
+					}
 				} catch (e) {
+					console.log(e);
 					loading = false;
 				}
 			}
 		}
 	}
-
+	function initialLoad(url: string, onlinePath: string, controller: AbortController) {
+		fetch(url, { signal: controller.signal })
+			.then((res) => res.json())
+			.then((data) => {
+				max = data._aMetadata._nRecordCount / 15;
+				setOnlineData((prev) => {
+					prev[onlinePath] = data._aRecords;
+					return {
+						...prev,
+					};
+				});
+				loading = false;
+			});
+	}
+	function nextPage(url: string, onlinePath: string) {
+		fetch(url)
+			.then((res) => res.json())
+			.then((data) => {
+				setOnlineData((prev) => {
+					prev[onlinePath] = [...prev[onlinePath], ...data._aRecords];
+					return {
+						...prev,
+					};
+				});
+				loading = false;
+			});
+	}
 	useEffect(() => {
-		setLocalFilteredItems(localItems.filter((item) => (localSelectedCategory == "All" ? true : item.path.startsWith("\\" + localSelectedCategory)) && (localFilter == "All" || (localFilter == "Enabled" && item.enabled) || (localFilter == "Disabled" && !item.enabled))));
-	}, [localFilter, localSelectedCategory, localItems]);
+		const items = localItems.filter(
+			(item) =>
+				(localSelectedCategory == "All" ? true : item.path.startsWith("\\" + localSelectedCategory)) &&
+				(localFilter == "All" ||
+					(localFilter == "Enabled" && item.enabled) ||
+					(localFilter == "Disabled" && !item.enabled))
+		);
 
+		if (!searchDB && items.length > 0) {
+			searchDB = new MiniSearch({
+				idField: "truePath",
+				fields: ["name", "truePath"],
+				storeFields: Object.keys(items[0]),
+				searchOptions: { prefix: true, fuzzy: 0.2 },
+			});
+		}
+		if(searchDB){
+		searchDB.removeAll();
+		searchDB.addAll(items);}
+		setIntermediateList(items);
+	}, [localFilter, localSelectedCategory, localItems]);
+	useEffect(() => {
+			if (debouncedSearchTerm.trim() === "" || !searchDB) {
+				setLocalFilteredItems(intermediateList);
+				return;
+			} else if (searchDB) {
+				const results = searchDB.search(debouncedSearchTerm);
+				console.log(results)
+				setLocalFilteredItems(results as unknown as LocalMod[]);
+			}
+		}, [debouncedSearchTerm, intermediateList]);
 	useEffect(() => {
 		const controller = new AbortController();
-
-		if (online) {
-			if (onlinePath == "home" && pathPageCount[onlinePath] == 1) {
+		if (online && !pathPageCount[onlinePath]) {
+			if (onlinePath.startsWith("home")) {
+				pathPageCount[onlinePath] = 1;
 				loading = true;
 				fetch(apiRoutes.banner(), { signal: controller.signal })
 					.then((res) => res.json())
 					.then((data) => {
-						// console.log("banner", data);
 						setOnlineData((prev) => {
+							console.log(data);
 							return {
 								...prev,
 								banner: data,
 							};
 						});
 					});
-				fetch(apiRoutes.home(), { signal: controller.signal })
-					.then((res) => res.json())
-					.then((data) => {
-						// console.log("home", data);
-						max = data._aMetadata._nRecordCount / 15;
-						setOnlineData((prev) => {
-							return {
-								...prev,
-								home: data._aRecords,
-							};
-						});
-						loading = false;
-					});
+				initialLoad(apiRoutes.home({ page: pathPageCount[onlinePath], type: onlineType }), onlinePath, controller);
 			} else if (onlinePath.startsWith("Skins") || onlinePath.startsWith("Other") || onlinePath.startsWith("UI")) {
 				pathPageCount[onlinePath] = 1;
 				loading = true;
-				fetch(apiRoutes.category(onlinePath), { signal: controller.signal })
-					.then((res) => res.json())
-					.then((data) => {
-						max = data._aMetadata._nRecordCount / 15;
-						setOnlineData((prev) => {
-							prev[onlinePath] = data._aRecords;
-							return {
-								...prev,
-							};
-						});
-						loading = false;
-					});
+				let cat = onlinePath.split("&_sort=")[0];
+				initialLoad(
+					apiRoutes.category({ cat, sort: onlineSort, page: pathPageCount[onlinePath] }),
+					onlinePath,
+					controller
+				);
+			} else if (onlinePath.startsWith("search/")) {
+				let term = onlinePath.replace("search/", "").split("&_type=")[0];
+				updateInfo(`Searching for "${term}"...`, 1000);
+				if (term.trim().length == 0) return;
+				pathPageCount[onlinePath] = 1;
+				loading = true;
+				initialLoad(apiRoutes.search({ term, type: onlineType }), onlinePath, controller);
 			}
 		}
 		return () => {
 			controller.abort();
 		};
-	}, [online, onlinePath]);
+	}, [online, onlinePath, onlineType]);
 	useEffect(() => {
-		if (online && onlineSelectedItem=="-1") {
+		if (online && onlineSelectedItem == "-1") {
+			prevRSOpen = rightSidebarOpen;
 			setRightSidebarOpen(false);
+		} else if (!online && prevRSOpen) {
+			setRightSidebarOpen(true);
 		}
 	}, [online]);
-
 	return (
 		<div className="border-border flex flex-col w-full h-full overflow-hidden duration-200 border">
-			<Navbar {...{ leftSidebarOpen, setLeftSidebarOpen, rightSidebarOpen, setRightSidebarOpen }} />
+			<Navbar {...{ leftSidebarOpen, setLeftSidebarOpen, rightSidebarOpen, setRightSidebarOpen, online }} />
 			<div className="flex w-full h-full px-2 overflow-hidden">
 				<MainLocal {...{ online, localFilter, localSelectedCategory }} />
 				<MainOnline {...{ max, count: pathPageCount[onlinePath], online, loadMore }} />
@@ -132,5 +207,4 @@ function Main({ leftSidebarOpen, setLeftSidebarOpen, rightSidebarOpen, setRightS
 		</div>
 	);
 }
-
 export default Main;

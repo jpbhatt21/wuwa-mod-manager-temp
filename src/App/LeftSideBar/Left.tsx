@@ -1,5 +1,5 @@
 import { Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupLabel } from "@/components/ui/sidebar";
-import { leftSidebarOpenAtom, onlineModeAtom } from "@/utils/vars";
+import { leftSidebarOpenAtom, onlineModeAtom, tutorialModeAtom } from "@/utils/vars";
 import Settings from "@/App/LeftSideBar/components/Settings";
 import Restore from "@/App/LeftSideBar/components/Restore";
 import { Globe, HardDriveDownload } from "lucide-react";
@@ -7,20 +7,24 @@ import { Separator } from "@/components/ui/separator";
 import LeftOnline from "@/App/LeftSideBar/LeftOnline";
 import LeftLocal from "@/App/LeftSideBar/LeftLocal";
 import { Button } from "@/components/ui/button";
-import { useAtom, useAtomValue } from "jotai";
+import { useAtom, useAtomValue, useSetAtom } from "jotai";
+import { useInstalledItemsManager } from "@/utils/commonHooks";
 import logo from "@/logo.png";
-
 function LeftSidebar() {
 	const leftSidebarOpen = useAtomValue(leftSidebarOpenAtom);
-	
 	const [online, setOnline] = useAtom(onlineModeAtom);
-
+	const setTutorialMode = useSetAtom(tutorialModeAtom);
+	useInstalledItemsManager();
 	return (
 		<Sidebar collapsible="icon">
 			<SidebarContent className=" gap-0 overflow-hidden border border-r-0">
 				<div className="min-h-16 min-w-16 flex items-center justify-center h-16 gap-5 p-0 border-b">
 					<div
+						id="WWMMLogo"
 						className="aspect-square h-10"
+						onClick={() => {
+							setTutorialMode(true);
+						}}
 						style={{
 							background: "url(" + logo + ")",
 							backgroundSize: "contain",
@@ -101,5 +105,4 @@ function LeftSidebar() {
 		</Sidebar>
 	);
 }
-
 export default LeftSidebar;

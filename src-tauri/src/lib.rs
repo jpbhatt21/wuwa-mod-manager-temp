@@ -1,10 +1,10 @@
-// Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 use futures_util::StreamExt;
 use reqwest::Client;
 use sevenz_rust2::decompress_file;
 use std::fs::{remove_file, File};
 use std::io::{self, BufWriter, Write};
 use std::path::Path;
+use std::process::Command;
 use std::sync::atomic::{AtomicU64, Ordering};
 use tauri::Emitter;
 use unrar::Archive as RarArchive;
@@ -13,14 +13,11 @@ use zip::ZipArchive;
 mod hotreload;
 mod image_server;
 
-// Constants for better maintainability
-const PROGRESS_UPDATE_THRESHOLD: u64 = 1024; // Update progress every 1KB
-const BUFFER_SIZE: usize = 8192; // 8KB buffer for file operations
-const IMAGE_SERVER_PORT: u16 = 5000; // Port for the image server
+const PROGRESS_UPDATE_THRESHOLD: u64 = 1024;
+const BUFFER_SIZE: usize = 8192;
+const IMAGE_SERVER_PORT: u16 = 5000;
 
-// Global session ID for tracking active sessions
 static SESSION_ID: AtomicU64 = AtomicU64::new(0);
-// Optimized MIME type to extension mapping with const lookup
 const MIME_EXTENSIONS: &[(&str, &str)] = &[
     ("image/jpeg", "jpg"),
     ("image/jpg", "jpg"),
@@ -68,7 +65,6 @@ async fn download_and_unzip(
     save_path: String,
     emit: bool,
 ) -> Result<(), String> {
-    // Capture current session ID at the start of download
     let current_sid = SESSION_ID.load(Ordering::SeqCst);
     log::info!(
         "Starting download for session ID: {}, file: {}",
@@ -77,12 +73,11 @@ async fn download_and_unzip(
     );
 
     println!("Starting download - Session ID: {}", current_sid);
-    // Create HTTP client
+
     let client = Client::new();
     let save_path2 = save_path.to_owned();
     println!("HTTP client created");
 
-    // Send GET request
     let response = client
         .get(&download_url)
         .send()
@@ -113,25 +108,22 @@ async fn download_and_unzip(
     };
     println!("test4");
 
-    // Get content length for progress
     let total_size = response
         .content_length()
         .ok_or("Failed to get content length")?;
     println!("test5");
-    // Prepare file path
+
     let file_path = Path::new(&save_path).join(&file_name);
     println!("{}", file_path.to_str().unwrap());
-    // Create buffered file writer for better performance
+
     let file = File::create(&file_path).map_err(|e| e.to_string())?;
     let mut writer = BufWriter::with_capacity(BUFFER_SIZE, file);
 
-    // Stream the response body
     let mut stream = response.bytes_stream();
     let mut downloaded: u64 = 0;
     let mut last_progress_update: u64 = 0;
 
     while let Some(item) = stream.next().await {
-        // Check if session has changed - if so, abort download
         let global_sid = SESSION_ID.load(Ordering::SeqCst);
         if global_sid != current_sid {
             log::info!(
@@ -140,7 +132,7 @@ async fn download_and_unzip(
                 global_sid,
                 file_name
             );
-            // Clean up partial file
+
             drop(writer);
             let _ = remove_file(&file_path);
             return Err(format!(
@@ -153,7 +145,6 @@ async fn download_and_unzip(
         writer.write_all(&chunk).map_err(|e| e.to_string())?;
         downloaded += chunk.len() as u64;
 
-        // Emit progress event to frontend (throttled for performance)
         if emit && (downloaded - last_progress_update) >= PROGRESS_UPDATE_THRESHOLD {
             let progress = (downloaded as f64 / total_size as f64) * 100.0;
             app_handle
@@ -163,11 +154,10 @@ async fn download_and_unzip(
         }
     }
 
-    // Final session check before processing the downloaded file
     let global_sid = SESSION_ID.load(Ordering::SeqCst);
     if global_sid != current_sid {
         log::info!("Session changed after download completed (was: {}, now: {}), aborting processing of: {}", current_sid, global_sid, file_name);
-        // Clean up downloaded file
+
         drop(writer);
         let _ = remove_file(&file_path);
         return Err(format!(
@@ -176,10 +166,8 @@ async fn download_and_unzip(
         ));
     }
 
-    // Flush the buffer before proceeding
     writer.flush().map_err(|e| e.to_string())?;
 
-    // Explicitly drop the writer to ensure file is closed
     drop(writer);
 
     log::info!(
@@ -188,7 +176,6 @@ async fn download_and_unzip(
         file_name
     );
 
-    // Unzip the file
     if ext == "zip" {
         let zip_file = File::open(&file_path).map_err(|e| e.to_string())?;
         let mut archive = ZipArchive::new(zip_file).map_err(|e| e.to_string())?;
@@ -210,7 +197,6 @@ async fn download_and_unzip(
             }
         }
 
-        // Delete the zip file
         remove_file(&file_path).map_err(|e| e.to_string())?;
     } else if ext == "rar" {
         let mut archive = RarArchive::new(&file_path)
@@ -238,7 +224,7 @@ async fn download_and_unzip(
                 let data = header.read().map_err(|e| e.to_string())?;
                 let mut outfile = File::create(&outpath).map_err(|e| e.to_string())?;
                 outfile.write_all(&data.0).map_err(|e| e.to_string())?;
-                archive = data.1; // Use the new archive state
+                archive = data.1;
             } else {
                 archive = header.skip().map_err(|e| e.to_string())?;
             }
@@ -249,7 +235,7 @@ async fn download_and_unzip(
         decompress_file(file_path, save_path).expect("complete");
         remove_file(del).map_err(|e| e.to_string())?;
     }
-    // Final session check before emitting completion
+
     let global_sid = SESSION_ID.load(Ordering::SeqCst);
     if global_sid != current_sid {
         log::info!("Session changed during file processing (was: {}, now: {}), not emitting completion for: {}", current_sid, global_sid, file_name);
@@ -279,7 +265,6 @@ async fn download_and_unzip(
 }
 #[tauri::command]
 fn get_username() -> String {
-    // Increment session ID when get_username is called (indicating session change/refresh)
     let new_sid = SESSION_ID.fetch_add(1, Ordering::SeqCst) + 1;
     log::info!("Session changed, new session ID: {}", new_sid);
 
@@ -292,36 +277,64 @@ fn exit_app() {
     std::process::exit(0x0);
 }
 
-/// Get the image server URL
 #[tauri::command]
 fn get_image_server_url() -> String {
     format!("http://127.0.0.1:{}", IMAGE_SERVER_PORT)
 }
 
-/// Get the current session ID
 #[tauri::command]
 fn get_session_id() -> u64 {
     SESSION_ID.load(Ordering::SeqCst)
 }
 
+#[tauri::command]
+fn execute_with_args(exe_path: String, args: Vec<String>) -> Result<String, String> {
+    if !Path::new(&exe_path).exists() {
+        return Err(format!("Executable not found: {}", exe_path));
+    }
+
+    let mut command = Command::new(&exe_path);
+
+    for arg in &args {
+        command.arg(arg);
+    }
+
+    match command.spawn() {
+        Ok(child) => {
+            log::info!(
+                "Successfully started process: {} with args: {:?}",
+                exe_path,
+                args
+            );
+            Ok(format!(
+                "Process started successfully with PID: {}",
+                child.id()
+            ))
+        }
+        Err(e) => {
+            log::error!("Failed to start process {}: {}", exe_path, e);
+            Err(format!("Failed to start process: {}", e))
+        }
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    // Initialize logging
     env_logger::init();
 
     tauri::Builder::default()
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_fs::init())
         .setup(|app| {
-            // Start the image server in a background task
             let app_handle = app.handle().clone();
             tauri::async_runtime::spawn(async move {
                 if let Err(e) = image_server::start_image_server(IMAGE_SERVER_PORT).await {
                     log::error!("Failed to start image server: {}", e);
-                    // Emit an error event to the frontend
+
                     if let Err(emit_err) = app_handle.emit(
                         "image-server-error",
                         format!("Failed to start image server: {}", e),
@@ -333,7 +346,7 @@ pub fn run() {
                         "Image server started successfully on port {}",
                         IMAGE_SERVER_PORT
                     );
-                    // Emit a success event to the frontend
+
                     if let Err(emit_err) =
                         app_handle.emit("image-server-ready", get_image_server_url())
                     {
@@ -350,19 +363,14 @@ pub fn run() {
             download_and_unzip,
             get_image_server_url,
             get_session_id,
+            execute_with_args,
             hotreload::set_hotreload,
-            hotreload::get_hotreload,
             hotreload::start_window_monitoring,
             hotreload::stop_window_monitoring,
-            hotreload::get_focused_window_info,
-            hotreload::test_f10_key,
-            hotreload::test_f10_key_detailed,
             hotreload::set_change,
-            hotreload::get_change,
-            hotreload::trigger_change,
-            hotreload::set_f10_method,
-            hotreload::get_f10_method,
-            hotreload::get_f10_method_name
+            hotreload::focus_mod_manager_send_f10_return_to_game,
+            hotreload::set_window_target,
+            hotreload::is_game_process_running
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

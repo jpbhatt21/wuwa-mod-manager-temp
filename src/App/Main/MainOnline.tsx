@@ -1,24 +1,32 @@
-import { onlineDataAtom, OnlineMod, onlinePathAtom, onlineSelectedItemAtom } from "@/utils/vars";
+import { onlinePathAtom, onlineTypeAtom, settingsDataAtom } from "@/utils/vars";
 import CardOnline from "@/App/Main/components/CardOnline";
 import { AnimatePresence, motion } from "motion/react";
-import { useAtomValue, useSetAtom } from "jotai";
+import { useAtomValue } from "jotai";
+import { useOnlineModState } from "@/utils/commonHooks";
 import Carousel from "./components/Carousel";
-import { MouseEvent, UIEvent } from "react";
+import { useEffect, useState } from "react";
 import { Loader } from "lucide-react";
+import { ANIMATIONS, COMMON_STYLES } from "@/utils/consts";
 import wwmm from "@/wwmm.png";
+import { MainOnlineProps, OnlineMod } from "@/utils/types";
 
-function MainOnline({ max, count, online, loadMore }: { max: number; count: number; online: boolean; loadMore: (e: MouseEvent<HTMLDivElement, MouseEvent> | UIEvent<HTMLDivElement>) => void }) {
-	const setOnlineSelectedItem = useSetAtom(onlineSelectedItemAtom);
-
-	const onlinePath = useAtomValue(onlinePathAtom);
-	const onlineData = useAtomValue(onlineDataAtom);
-
-	let now = Math.round(Date.now() / 1000);
-
-	function onModClick(data: OnlineMod) {
-		setOnlineSelectedItem(data._sModelName + "/" + data._idRow);
-	}
-
+function MainOnline({ max, count, online, loadMore }: MainOnlineProps) {
+  const { onlineData, setSelectedItem } = useOnlineModState();
+  const onlinePath = useAtomValue(onlinePathAtom);
+  const onlineType = useAtomValue(onlineTypeAtom);
+  const nsfw = useAtomValue(settingsDataAtom).nsfw;
+  const [debouncedOnlinePath, setDebouncedOnlinePath] = useState(onlinePath);
+  const now = Math.round(Date.now() / 1000);
+  
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedOnlinePath(onlinePath);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [onlinePath]);
+  const onModClick = (data: OnlineMod) => {
+    setSelectedItem(`${data._sModelName}/${data._idRow}`);
+  };
 	return (
 		<>
 			<div
@@ -26,38 +34,39 @@ function MainOnline({ max, count, online, loadMore }: { max: number; count: numb
 				style={{
 					opacity: online ? 1 : 0,
 					transitionDelay: online ? "0.3s" : "0s",
-					pointerEvents: online ? "auto" : "none",
+					pointerEvents: online ? "all" : "none",
 					marginLeft: "-100%",
 				}}
-				onMouseMove={loadMore}
+				
 				onScroll={loadMore}>
 				<div className="h-fit w-full max-w-3xl">
 					<div
 						className="aspect-video w-full max-w-3xl duration-500"
 						style={{
-							opacity: onlinePath == "home" && onlineData.banner.length > 0 ? 1 : 0,
-							marginBottom: onlinePath == "home" && onlineData.banner.length > 0 ? "1rem" : "-100%",
+							opacity: debouncedOnlinePath.startsWith("home") && onlineData.banner.length > 0 ? 1 : 0,
+							marginBottom: debouncedOnlinePath.startsWith("home") && onlineData.banner.length > 0 ? "1rem" : "-100%",
 						}}>
-						<Carousel data={onlineData.banner} onModClick={onModClick} />
+						<Carousel data={onlineData.banner.filter(item => ((item._sModelName=="Mod" || onlineType=="") && (nsfw||item._sInitialVisibility!="hide"))) } blur={nsfw==1} onModClick={onModClick} />
 					</div>
 				</div>
 				<AnimatePresence>
 					{online && (
 						<motion.div
-							initial={{ opacity: 0 }}
-							animate={{ opacity: 1 }}
-							exit={{ opacity: 0 }}
+							{...ANIMATIONS.FADE}
 							id="online-items"
-							transition={{ duration: 0.3 }}
 							className="min-h-fit grid justify-center w-full py-4"
-							style={{
-								gridTemplateColumns: "repeat(auto-fill, minmax(256px, 256px))",
-								gridAutoRows: "288px",
-								columnGap: "0px",
-								rowGap: "32px",
-								justifyItems: "center",
-							}}>
-							{onlineData[onlinePath] && onlineData[onlinePath].map((item, index) => <CardOnline {...{ index, wwmm, now, onModClick, ...item }} />)}
+							style={COMMON_STYLES.CARD_GRID}>
+							{onlineData[debouncedOnlinePath] && onlineData[debouncedOnlinePath].map((item, index) => ((nsfw||item._sInitialVisibility!="hide") &&
+                <CardOnline 
+                  key={`${item._sModelName}-${item._idRow}`}
+                  {...item}
+                  index={index}
+                  wwmm={wwmm}
+                  now={now}
+                  onModClick={onModClick}
+				  blur={nsfw==1}
+                />
+              ))}
 						</motion.div>
 					)}
 				</AnimatePresence>
@@ -66,5 +75,4 @@ function MainOnline({ max, count, online, loadMore }: { max: number; count: numb
 		</>
 	);
 }
-
 export default MainOnline;

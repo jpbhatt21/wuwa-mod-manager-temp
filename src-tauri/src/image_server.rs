@@ -6,18 +6,15 @@ use urlencoding::decode;
 use warp::http::StatusCode;
 use warp::{Filter, Rejection, Reply};
 
-/// Supported image extensions in order of preference
 static SUPPORTED_EXTENSIONS: &[&str] = &["png", "jpg", "jpeg", "webp", "gif", "bmp", "tiff"];
 
-/// HTTP headers for caching and security
 static CACHE_HEADERS: Lazy<Vec<(&'static str, &'static str)>> = Lazy::new(|| {
     vec![
-        ("Cache-Control", "public, max-age=3600"), // 1 hour cache
+        ("Cache-Control", "public, max-age=3600"),
         ("X-Content-Type-Options", "nosniff"),
     ]
 });
 
-/// Error response structure
 #[derive(serde::Serialize)]
 struct ErrorResponse {
     status: &'static str,
@@ -33,7 +30,6 @@ impl ErrorResponse {
     }
 }
 
-/// Success response for health check
 #[derive(serde::Serialize)]
 struct HealthResponse {
     status: &'static str,
@@ -49,7 +45,6 @@ impl HealthResponse {
     }
 }
 
-/// Convert a rejection to a JSON error response
 async fn handle_rejection(err: Rejection) -> Result<impl Reply, Infallible> {
     let (code, message) = if err.is_not_found() {
         (StatusCode::NOT_FOUND, "Endpoint not found".to_string())
@@ -68,16 +63,14 @@ async fn handle_rejection(err: Rejection) -> Result<impl Reply, Infallible> {
     Ok(warp::reply::with_status(json, code))
 }
 
-/// Handle preview image requests
 async fn handle_preview_image(subpath: String) -> Result<impl Reply, Rejection> {
-    println!("Preview image request for: {}", subpath);
     log::info!("Preview image request for: {}", subpath);
 
     let decoded_path = decode(&subpath)
         .map(|cow_str| cow_str.into_owned())
         .unwrap_or_else(|_| String::from(""));
     let directory = Path::new(&decoded_path);
-    // Security and validation checks
+
     if !directory.exists() {
         let error = ErrorResponse::new("Directory does not exist".to_string());
         return Ok(
@@ -94,7 +87,6 @@ async fn handle_preview_image(subpath: String) -> Result<impl Reply, Rejection> 
         );
     }
 
-    // Look for preview files with supported extensions
     for ext in SUPPORTED_EXTENSIONS {
         let preview_file = directory.join(format!("preview.{}", ext));
 
@@ -109,7 +101,6 @@ async fn handle_preview_image(subpath: String) -> Result<impl Reply, Rejection> 
         }
     }
 
-    // No preview file found
     let error = ErrorResponse::new(format!(
         "No preview file found in directory. Supported formats: {}",
         SUPPORTED_EXTENSIONS.join(", ")
@@ -118,27 +109,21 @@ async fn handle_preview_image(subpath: String) -> Result<impl Reply, Rejection> 
     Ok(warp::reply::with_status(warp::reply::json(&error), StatusCode::NOT_FOUND).into_response())
 }
 
-/// Serve an image file with proper headers
 async fn serve_image_file(
     file_path: &Path,
 ) -> Result<warp::reply::Response, Box<dyn std::error::Error>> {
-    // Read file contents
     let file_contents = fs::read(file_path)?;
 
-    // Guess MIME type
     let mime_type = mime_guess::from_path(file_path)
         .first_or_octet_stream()
         .to_string();
 
-    // Build response with caching headers
     let mut response = warp::reply::Response::new(file_contents.into());
 
-    // Set content type
     response
         .headers_mut()
         .insert("content-type", mime_type.parse().unwrap());
 
-    // Add cache and security headers
     for (key, value) in CACHE_HEADERS.iter() {
         response.headers_mut().insert(*key, value.parse().unwrap());
     }
@@ -146,40 +131,33 @@ async fn serve_image_file(
     Ok(response)
 }
 
-/// Handle health check requests
 async fn handle_health_check() -> Result<impl Reply, Rejection> {
     let health_response = HealthResponse::new();
     Ok(warp::reply::json(&health_response))
 }
 
-/// Create the image server routes
 pub fn create_routes() -> impl Filter<Extract = impl Reply, Error = Infallible> + Clone {
-    // CORS configuration
     let cors = warp::cors()
         .allow_origins(vec!["http://localhost:1420", "tauri://localhost"])
         .allow_headers(vec!["content-type"])
         .allow_methods(vec!["GET"]);
 
-    // Preview image route: GET /preview/{path}
     let preview_route = warp::path("preview")
         .and(warp::path::tail())
         .and(warp::get())
         .map(|tail: warp::path::Tail| tail.as_str().to_string())
         .and_then(handle_preview_image);
 
-    // Health check route: GET /health
     let health_route = warp::path("health")
         .and(warp::get())
         .and_then(handle_health_check);
 
-    // Combine routes with CORS and error handling
     preview_route
         .or(health_route)
         .with(cors)
         .recover(handle_rejection)
 }
 
-/// Start the image server
 pub async fn start_image_server(port: u16) -> Result<(), Box<dyn std::error::Error>> {
     log::info!("Starting WWMM Image Server on 127.0.0.1:{}", port);
 
@@ -224,7 +202,6 @@ mod tests {
 
     #[tokio::test]
     async fn test_preview_image_success() {
-        // Create a temporary directory with a preview image
         let temp_dir = TempDir::new().unwrap();
         let preview_path = temp_dir.path().join("preview.png");
         fs::write(&preview_path, b"fake png data").unwrap();

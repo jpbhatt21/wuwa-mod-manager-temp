@@ -1,0 +1,36 @@
+{
+  "version": "2.0.0",
+  "dir": "C:\\Users\\jatan\\AppData\\Roaming\\XXMI Launcher\\WWMI\\Mods",
+  "settings": {
+    "hotKeys": {},
+    "appDir": "C:\\Users\\jatan\\AppData\\Roaming\\XXMI Launcher\\Resources\\Bin\\XXMI Launcher.exe",
+    "launch": 0,
+    "hotReload": 1,
+    "toggle": 2,
+    "open": 0,
+    "opacity": 1,
+    "type": 0,
+    "bgType": 2,
+    "listType": 0,
+    "onlineType": "Mod",
+    "nsfw": 1
+  },
+  "data": {
+    "\\Changli\\ChangliHecate": {
+      "source": "https://gamebanana.com/mods/582144",
+      "updatedAt": 1742236406000,
+      "viewedAt": 1759414983000,
+      "note": ""
+    },
+    "\\Cantarella\\12C2antyFixed_update": {
+      "note": "testsffa"
+    },
+    "\\Zani\\Zani-Talos (+All Vanilla Forms)": {
+      "source": "https://gamebanana.com/mods/592726",
+      "updatedAt": 1746608566000,
+      "viewedAt": 1759414925000
+    }
+  },
+  "presets": [],
+  "savedAt": 1759415835094
+}
